@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -16,16 +17,29 @@ class AuthController extends Controller
             ]);
         $user= User::create($fields);
         $token = $user->createToken($request->firstName);
-        return ["user" =>$user,"token" => $token];
+        return ["user" =>$user,"token" => $token->plainTextToken];
     }
 
     public function login(Request $request)
     {
-        return 'login';
+        $fields=$request->validate([
+                'firstName' => 'required|exists:users',
+                'password' => 'required',
+        ]);
+        $user=User::where('firstName', $fields['firstName'])->first();
+        if (!$user || !Hash::check($fields['password'], $user->password)) {
+            return [
+                'message' => 'Identifiants incorrects'
+            ];
+        }
+        $token = $user->createToken($user->firstName);
+        return ["user" =>$user,"token" => $token->plainTextToken];
     }
 
     public function logout(Request $request)
     {
-        return 'login';
+        return response()->json(['message' => 'Déconnexion réussie'], 200);
+        $request->user()->tokens()->delete();
+        return ['message' => 'Déconnexion réussie'];
     }
 }
