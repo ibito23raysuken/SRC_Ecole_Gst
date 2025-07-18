@@ -4,9 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 
-class StudentController extends Controller
+class StudentController extends Controller implements HasMiddleware
 {
+    public Static function middleware()
+    {
+        return [
+            new Middleware('auth:sanctum',except: ['index', 'show'])
+        ];
+    }
     /**
      * Display a listing of the resource.
      */
@@ -24,7 +32,7 @@ class StudentController extends Controller
             'lastName'=>'required|max:255',
             'firstName'=>'required'
         ]);
-        $student=Student::Create($fields);
+        $student =$request->user()->students()->create($fields);
         return $student;
     }
 

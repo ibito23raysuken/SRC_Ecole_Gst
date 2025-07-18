@@ -10,4 +10,17 @@ export default defineConfig({
         }),
         react(),tailwindcss(), // Plugin ajouté
     ],
+    // Configuration du serveur
+    server: {
+        proxy: {
+        '/api': {
+            target: 'http://localhost:8000',
+            changeOrigin: true,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+        }
+        }
+    }
 });
