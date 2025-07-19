@@ -6,6 +6,7 @@ use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Gate;
 
 class StudentController extends Controller implements HasMiddleware
 {
@@ -49,6 +50,7 @@ class StudentController extends Controller implements HasMiddleware
      */
     public function update(Request $request, Student $student)
     {
+        Gate::authorize('modify', $student);
         $fields=$request->validate([
             'lastName'=>'required|max:255',
             'firstName'=>'required'
@@ -62,6 +64,7 @@ class StudentController extends Controller implements HasMiddleware
      */
     public function destroy(Student $student)
     {
+        Gate::authorize('modify', $student);
         $student->delete();
         return ['message'=>"La suppression de l'étudiant a été effectuée."];
     }
