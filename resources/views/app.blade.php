@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Page React</title>
+    <title>Gestion Ecole</title>
     @viteReactRefresh
-    @vite('resources/js/app.jsx')
+    @vite('resources/js/main.jsx')
     @vite('resources/css/app.css')
 </head>
 <body>

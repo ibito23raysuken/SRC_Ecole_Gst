@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.jsx'], // Doit être .jsx
+            input: ['resources/css/app.css', 'resources/js/main.jsx'], // Doit être .jsx
             refresh: true,
         }),
         react(),tailwindcss(), // Plugin ajouté
@@ -14,10 +14,10 @@ export default defineConfig({
     server: {
         proxy: {
         '/api': {
-            target: 'http://localhost:8000',
+            target: 'http://localhost:8000/api',
             changeOrigin: true,
             headers: {
-                Accept: 'application/json',
+                'Accept': 'application/json',
                 'Content-Type': 'application/json',
             },
         }
