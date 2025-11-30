@@ -5,7 +5,7 @@ import {
   PiBooksFill,
   PiGearFill,
   PiCaretDown,
-  PiCaretRight
+  PiCaretRight,
 } from "react-icons/pi";
 
 export default function Sidebar() {
@@ -21,8 +21,8 @@ export default function Sidebar() {
       subMenus: [
         { title: "Nouveau étudiant", path: "/students/create" },
         { title: "Liste étudiants", path: "/students" },
-        { title: "Statistiques", path: "/students/stats" }
-      ]
+        { title: "Statistiques", path: "/students/SchoolDashboard" },
+      ],
     },
     {
       id: 'teachers',
@@ -30,8 +30,8 @@ export default function Sidebar() {
       icon: <PiChalkboardTeacherFill className="text-2xl" />,
       subMenus: [
         { title: "Ajouter enseignant", path: "/teachers/create" },
-        { title: "Liste enseignants", path: "/teachers/list" }
-      ]
+        { title: "Liste enseignants", path: "/teachers/list" },
+      ],
     },
     {
       id: 'classes',
@@ -40,41 +40,36 @@ export default function Sidebar() {
       subMenus: [
         { title: "Créer une classe", path: "/classes/create" },
         { title: "Liste des classes", path: "/classes/list" },
-        { title: "Emplois du temps", path: "/classes/schedule" }
-      ]
+        { title: "Emplois du temps", path: "/classes/schedule" },
+      ],
     },
     {
       id: 'settings',
       title: "Paramètres",
       icon: <PiGearFill className="text-2xl" />,
-      path: "/settings"
-    }
+      path: "/settings",
+    },
   ];
 
   const toggleMenu = (menuId) => {
-    if (activeMenu === menuId) {
-      setActiveMenu(null);
-    } else {
-      setActiveMenu(menuId);
-    }
+    setActiveMenu(activeMenu === menuId ? null : menuId);
   };
 
   return (
     <div
       className={`fixed top-40 left-4 z-40 transition-all duration-300 ease-in-out
-        ${open ? 'w-60' : 'w-16'}
-        h-[calc(100vh-20rem)] bg-gradient-to-b from-red-700 to-red-800 shadow-xl
-        rounded-2xl flex flex-col justify-between
-        hover:w-60`}
+        ${open ? 'w-60' : 'w-16'} h-[calc(100vh-20rem)]
+        bg-gradient-to-b from-red-700 to-red-800 shadow-xl rounded-2xl flex flex-col justify-between hover:w-60`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
+      {/* MENU */}
       <div className="p-4 space-y-1">
         {menuItems.map((item) => (
           <div key={item.id} className="mb-1">
-            {/* Bouton principal du menu */}
+            {/* Bouton principal */}
             <button
-              onClick={() => item.subMenus ? toggleMenu(item.id) : null}
+              onClick={() => item.subMenus && toggleMenu(item.id)}
               className={`w-full flex items-center gap-4 text-white hover:bg-red-600 rounded-lg px-3 py-3 transition
                 ${open ? 'justify-between' : 'justify-center'}`}
             >
@@ -82,7 +77,6 @@ export default function Sidebar() {
                 <span>{item.icon}</span>
                 {open && <span className="font-medium">{item.title}</span>}
               </div>
-
               {open && item.subMenus && (
                 <span>
                   {activeMenu === item.id ? <PiCaretDown /> : <PiCaretRight />}
@@ -108,6 +102,7 @@ export default function Sidebar() {
         ))}
       </div>
 
+      {/* COPYRIGHT */}
       <div className="p-4 text-center text-xs text-white opacity-70">
         {open && '© 2025 Les Savants'}
       </div>

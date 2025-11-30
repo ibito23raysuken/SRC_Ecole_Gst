@@ -82,7 +82,7 @@ export default function Layout() {
 
             {/* Contenu principal avec bordure rouge subtile */}
             <main className="flex-grow container mx-auto p-4 md:p-8 border-t-4 border-red-200">
-                <div className="bg-white rounded-xl shadow-md overflow-hidden p-6 md:p-8">
+                <div>
 
                             {user && user.firstName ? (
                                 <Sidebar />

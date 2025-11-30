@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('student_id')->constrained()->onDelete('cascade');
             $table->string('name');
-            $table->enum('relationship', ['mother', 'father', 'guardian']);
+            $table->enum('relationship', ['mother', 'father', 'guardian'])->nullable();
             $table->string('phone');
             $table->string('email')->nullable();
             $table->string('profession')->nullable();

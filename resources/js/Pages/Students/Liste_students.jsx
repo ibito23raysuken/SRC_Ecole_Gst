@@ -56,6 +56,33 @@ export default function StudentList() {
   const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
   const currentStudents = filteredStudents.slice(indexOfFirstStudent, indexOfLastStudent);
   const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+const handleDelete = async (id) => {
+  if (!window.confirm("Voulez-vous vraiment supprimer cet étudiant ?")) return;
+
+  try {
+    const response = await fetch(`/api/students/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+    });
+
+    if (response.status === 403) {
+      alert("Vous n'avez pas la permission de supprimer cet étudiant.");
+      return;
+    }
+
+    if (!response.ok) throw new Error('Erreur lors de la suppression');
+
+    setStudents(prev => prev.filter(student => student.id !== id));
+    alert('Étudiant supprimé avec succès !');
+  } catch (err) {
+    console.error(err);
+    alert(`Impossible de supprimer l’étudiant : ${err.message}`);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-red-50 p-4 md:p-8">
@@ -66,7 +93,7 @@ export default function StudentList() {
             Liste des Élèves
           </h1>
           <Link
-            to="/students/add"
+            to="/students/create"
             className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow transition duration-200"
           >
             + Ajouter un élève
@@ -118,7 +145,7 @@ export default function StudentList() {
                       Classe
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-red-800 uppercase tracking-wider">
-                      Date de naissance
+                      Année d'inscription
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-red-800 uppercase tracking-wider">
                       Actions
@@ -141,9 +168,7 @@ export default function StudentList() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {student.birth_date
-                            ? new Date(student.birth_date).toLocaleDateString('fr-FR')
-                            : 'N/A'}
+                          {student.academic_year}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <Link
@@ -152,12 +177,14 @@ export default function StudentList() {
                           >
                             Voir
                           </Link>
-                          <Link
-                            to={`/students/edit/${student.id}`}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Modifier
-                          </Link>
+                            <button
+                            onClick={() => handleDelete(student.id)}
+                            className="text-red-600 hover:text-red-900 mx-6"
+
+                            >
+                             Effacer
+                            </button>
+
                         </td>
                       </tr>
                     ))

@@ -29,7 +29,7 @@ class Student extends Model
         'birth_certificate',
         'medical_certificate',
         'report_card',
-        'photo',
+        'student_image',
         'id_card',
         'tuition_payment',
         'registration_months',
@@ -40,7 +40,6 @@ class Student extends Model
         'birth_certificate' => 'boolean',
         'medical_certificate' => 'boolean',
         'report_card' => 'boolean',
-        'photo' => 'boolean',
         'id_card' => 'boolean',
         'registration_months' => 'array',
     ];
@@ -51,6 +50,20 @@ class Student extends Model
         public function guardians()
     {
         return $this->hasMany(Guardian::class);
+    }
+        /**
+     * Supprimer les gardiens associés avant l'étudiant
+     */
+    protected static function booted()
+    {
+        static::deleting(function ($student) {
+            $student->guardians()->delete();
+        });
+    }
+        // URL complète pour l'image
+    public function getProfilePhotoUrlAttribute()
+    {
+        return asset('storage/' . $this->student_image);
     }
 
 }
