@@ -1,33 +1,51 @@
 import { useState, useEffect, useContext } from "react";
-import { Edit3, Save } from "lucide-react";
+import { Edit3, Save, X } from "lucide-react";
 import { updateStudentApi } from "../../../api/apistudents";
 import { AppContext } from "../../../Context/AppContext";
 
-export default function EditableDate({ value, student, setStudent }) {
-  const { token } = useContext(AppContext);
+export default function EditableDate({ value, student, updateStudentField }) {
   const [editing, setEditing] = useState(false);
-
-  // valeur toujours SÛRE 🚀
   const [tempValue, setTempValue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { token } = useContext(AppContext);
 
-  // met à jour après chargement du backend
+  // Synchronisation si la valeur change dans le parent
   useEffect(() => {
-    if (value) {
-      setTempValue(value.split("T")[0]);
-    }
+    setTempValue(value ? value.split("T")[0] : "");
   }, [value]);
 
-  const handleSave = async () => {
-    try {
-      await updateStudentApi(student.id, { birth_date: tempValue }, token);
+ const handleSave = async () => {
+  if (!student?.id) return;
 
-      // mise à jour IMMÉDIATE de l’affichage
-      setStudent(prev => ({ ...prev, birthDate: tempValue }));
+  if (tempValue === value?.split("T")[0]) {
+    setEditing(false);
+    return;
+  }
 
-      setEditing(false);
-    } catch (err) {
-      console.error("Erreur lors de la mise à jour :", err);
-    }
+  setLoading(true);
+  try {
+    await updateStudentApi(
+      student.id,
+      { birth_date: tempValue },
+      token
+    );
+
+    // ✅ mise à jour correcte du parent
+    updateStudentField("birth_date", tempValue);
+
+    setEditing(false);
+  } catch (err) {
+    console.error("Erreur lors de la mise à jour :", err);
+    alert("Impossible de sauvegarder la date !");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const handleCancel = () => {
+    setTempValue(value ? value.split("T")[0] : "");
+    setEditing(false);
   };
 
   return (
@@ -38,7 +56,7 @@ export default function EditableDate({ value, student, setStudent }) {
         {editing ? (
           <input
             type="date"
-            value={tempValue}  // 🔥 toujours string => jamais erreur
+            value={tempValue || ""}
             onChange={(e) => setTempValue(e.target.value)}
             className="border rounded-md p-1"
           />
@@ -49,12 +67,25 @@ export default function EditableDate({ value, student, setStudent }) {
         )}
       </div>
 
-      <button
-        onClick={editing ? handleSave : () => setEditing(true)}
-        className={`ml-2 font-bold ${editing ? "text-green-600" : "text-red-600"}`}
-      >
-        {editing ? <Save /> : <Edit3 />}
-      </button>
+      <div className="flex items-center gap-2">
+        {editing && (
+          <button
+            onClick={handleCancel}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+
+        <button
+          onClick={editing ? handleSave : () => setEditing(true)}
+          disabled={loading}
+          className={`font-bold ${editing ? "text-green-600" : "text-red-600"} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+        >
+          {editing ? <Save className="w-5 h-5 mr-1 inline" /> : <Edit3 className="w-5 h-5 mr-1 inline" />}
+          {editing ? (loading ? "Sauvegarde..." : "") : ""}
+        </button>
+      </div>
     </div>
   );
 }

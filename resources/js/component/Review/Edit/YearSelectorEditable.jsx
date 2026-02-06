@@ -12,11 +12,11 @@ export default function YearSelectorEditable({ value,student }) {
     // Génère une liste d'années (ex : 2015 → 2035)
     const years = Array.from({ length: 20 }, (_, i) => currentYear - 10 + i);
 
-    const [academicYear, setAcademicYear] = useState(value || currentYear);
+    const [academicYear, setAcademicYear] = useState(student.academic_year);
 
  const handleSave = async () => {
     await updateStudentApi(student.id, {
-        academicYear: academicYear
+        academic_year: academicYear
     }, token);
 
     setIsEditing(false);

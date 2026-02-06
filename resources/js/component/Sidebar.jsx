@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   PiStudentFill,
   PiChalkboardTeacherFill,
@@ -11,11 +12,11 @@ import {
 export default function Sidebar() {
   const [open, setOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
+  const location = useLocation();
 
-  // Structure des menus et sous-menus
   const menuItems = [
     {
-      id: 'students',
+      id: "students",
       title: "Étudiants",
       icon: <PiStudentFill className="text-2xl" />,
       subMenus: [
@@ -25,7 +26,7 @@ export default function Sidebar() {
       ],
     },
     {
-      id: 'teachers',
+      id: "teachers",
       title: "Enseignants",
       icon: <PiChalkboardTeacherFill className="text-2xl" />,
       subMenus: [
@@ -34,7 +35,7 @@ export default function Sidebar() {
       ],
     },
     {
-      id: 'classes',
+      id: "classes",
       title: "Classes",
       icon: <PiBooksFill className="text-2xl" />,
       subMenus: [
@@ -44,10 +45,10 @@ export default function Sidebar() {
       ],
     },
     {
-      id: 'settings',
+      id: "settings",
       title: "Paramètres",
       icon: <PiGearFill className="text-2xl" />,
-      path: "/settings",
+      path: "/parametre",
     },
   ];
 
@@ -58,53 +59,96 @@ export default function Sidebar() {
   return (
     <div
       className={`fixed top-40 left-4 z-40 transition-all duration-300 ease-in-out
-        ${open ? 'w-60' : 'w-16'} h-[calc(100vh-20rem)]
+        ${open ? "w-60" : "w-16"} h-[calc(100vh-20rem)]
         bg-gradient-to-b from-red-700 to-red-800 shadow-xl rounded-2xl flex flex-col justify-between hover:w-60`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
       {/* MENU */}
       <div className="p-4 space-y-1">
-        {menuItems.map((item) => (
-          <div key={item.id} className="mb-1">
-            {/* Bouton principal */}
-            <button
-              onClick={() => item.subMenus && toggleMenu(item.id)}
-              className={`w-full flex items-center gap-4 text-white hover:bg-red-600 rounded-lg px-3 py-3 transition
-                ${open ? 'justify-between' : 'justify-center'}`}
-            >
-              <div className="flex items-center gap-4">
-                <span>{item.icon}</span>
-                {open && <span className="font-medium">{item.title}</span>}
-              </div>
-              {open && item.subMenus && (
-                <span>
-                  {activeMenu === item.id ? <PiCaretDown /> : <PiCaretRight />}
-                </span>
-              )}
-            </button>
+        {menuItems.map((item) => {
+          const isActive =
+            location.pathname === item.path ||
+            item.subMenus?.some((sub) =>
+              location.pathname.startsWith(sub.path)
+            );
 
-            {/* Sous-menus */}
-            {open && activeMenu === item.id && item.subMenus && (
-              <div className="mt-1 ml-8 space-y-1 border-l-2 border-red-500 pl-2">
-                {item.subMenus.map((subMenu, index) => (
-                  <a
-                    key={index}
-                    href={subMenu.path}
-                    className="block py-2 px-3 text-white hover:bg-red-600 rounded-lg transition text-sm"
+          return (
+            <div key={item.id} className="mb-1">
+              {/* Si menu avec sous-menu */}
+              {item.subMenus ? (
+                <>
+                  <button
+                    onClick={() => toggleMenu(item.id)}
+                    className={`w-full flex items-center gap-4 text-white rounded-lg px-3 py-3 transition
+                      ${open ? "justify-between" : "justify-center"}
+                      ${isActive ? "bg-red-600" : "hover:bg-red-600"}`}
                   >
-                    {subMenu.title}
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+                    <div className="flex items-center gap-4">
+                      <span>{item.icon}</span>
+                      {open && (
+                        <span className="font-medium">{item.title}</span>
+                      )}
+                    </div>
+
+                    {open && (
+                      <span>
+                        {activeMenu === item.id ? (
+                          <PiCaretDown />
+                        ) : (
+                          <PiCaretRight />
+                        )}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Sous-menus */}
+                  {open && activeMenu === item.id && (
+                    <div className="mt-1 ml-8 space-y-1 border-l-2 border-red-500 pl-2">
+                      {item.subMenus.map((subMenu, index) => {
+                        const isSubActive =
+                          location.pathname === subMenu.path;
+
+                        return (
+                          <Link
+                            key={index}
+                            to={subMenu.path}
+                            className={`block py-2 px-3 text-white rounded-lg transition text-sm
+                              ${
+                                isSubActive
+                                  ? "bg-red-600"
+                                  : "hover:bg-red-600"
+                              }`}
+                          >
+                            {subMenu.title}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Menu simple (ex: Paramètres) */
+                <Link
+                  to={item.path}
+                  className={`w-full flex items-center gap-4 text-white rounded-lg px-3 py-3 transition
+                    ${open ? "justify-start" : "justify-center"}
+                    ${isActive ? "bg-red-600" : "hover:bg-red-600"}`}
+                >
+                  <span>{item.icon}</span>
+                  {open && (
+                    <span className="font-medium">{item.title}</span>
+                  )}
+                </Link>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* COPYRIGHT */}
+      {/* FOOTER */}
       <div className="p-4 text-center text-xs text-white opacity-70">
-        {open && '© 2025 Les Savants'}
+        {open && "© 2026 Les Savants"}
       </div>
     </div>
   );

@@ -1,26 +1,29 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import react from '@vitejs/plugin-react'; // Import ajouté
+import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite'
+
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/main.jsx'], // Doit être .jsx
+            input: ['resources/css/app.css', 'resources/js/main.jsx'],
             refresh: true,
         }),
-        react(),tailwindcss(), // Plugin ajouté
+        react(),
+        tailwindcss(),
     ],
-    // Configuration du serveur
     server: {
+        host: 'localhost', // <-- Ajout important !
+        port: 5173,        // <-- Fix le port
+        hmr: {
+            host: 'localhost', // <-- Empêche IPv6 [::]
+        },
         proxy: {
-        '/api': {
-            target: 'http://localhost:8000/api',
-            changeOrigin: true,
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-        }
+            '/api': {
+                target: 'http://localhost:8000',
+                changeOrigin: true,
+                secure: false,
+            }
         }
     }
 });

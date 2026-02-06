@@ -30,7 +30,7 @@ export default function GuardianSection({ student, handleChange }) {
 
       {/* Afficher un message si aucun responsable */}
       {guardians.length === 0 ? (
-        <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="text-center py-2 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-gray-500">Aucun responsable légal ajouté.</p>
         </div>
       ) : (
@@ -40,7 +40,7 @@ export default function GuardianSection({ student, handleChange }) {
               {/* En-tête du responsable */}
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-t-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold">
+                  <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-semibold">
                     {guardian.id}
                   </div>
                   <span className="font-medium text-gray-700">
@@ -144,7 +144,7 @@ export default function GuardianSection({ student, handleChange }) {
         type="button"
         onClick={addGuardian}
         disabled={guardians.length >= 4}
-        className="mt-4 flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
+        className="mt-4 flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />

@@ -16,16 +16,17 @@ export default function GradeLevelEditable({ value, student }) {
         "2nde","1ère","Term"
     ];
 
-    const [gradeLevel, setGradeLevel] = useState(value);
+    const [gradeLevel, setGradeLevel] = useState(student.grade_level);
 
     const handleSave = async () => {
+
+        console.log("Saving grade level:", gradeLevel);
         await updateStudentApi(student.id, {
-            gradeLevel: gradeLevel
+            grade_level: gradeLevel
         }, token);
 
         setIsEditing(false);
     };
-
     return (
         <div>
             {isEditing ? (
@@ -40,6 +41,7 @@ export default function GradeLevelEditable({ value, student }) {
                             <option key={cls} value={cls}>{cls}</option>
                         ))}
                     </select>
+
 
                     <button
                         onClick={handleSave}

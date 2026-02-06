@@ -1,87 +1,101 @@
-import { useState } from 'react';
-import { Edit3, Save } from "lucide-react";
+import { useState, useEffect, useContext } from "react";
+import { Edit3, Save, X } from "lucide-react";
 import { updateStudentApi } from '../../../api/apistudents';
-import {  useContext } from 'react';
-import { AppContext } from '../../../Context/AppContext';
+import { AppContext } from "../../../Context/AppContext";
 
-
-export default function EditableFullName({ student, setStudent }) {
-  const [editing, setEditing] = useState(false);
-  const [firstName, setFirstName] = useState(student.first_name);
-  const [lastName, setLastName] = useState(student.last_name);
-  const [error, setError] = useState("");
+export default function EditableFullName({ student, updateStudentField }) {
   const { token } = useContext(AppContext);
+
+  const [editing, setEditing] = useState(false);
+  const [firstName, setFirstName] = useState(student.first_name || "");
+  const [lastName, setLastName] = useState(student.last_name || "");
+  const [loading, setLoading] = useState(false);
+
+  // Synchronise les champs si le parent change le student
+  useEffect(() => {
+    setFirstName(student.first_name || "");
+    setLastName(student.last_name || "");
+  }, [student]);
+
   const handleSave = async () => {
-    if (!firstName.trim() || !lastName.trim()) {
-      setError("Le nom et le prénom ne peuvent pas être vides.");
+    if (!student?.id) return;
+
+    // Evite de sauvegarder si rien n'a changé
+    if (
+      firstName.trim() === student.first_name?.trim() &&
+      lastName.trim() === student.last_name?.trim()
+    ) {
+      setEditing(false);
       return;
     }
 
+    setLoading(true);
     try {
-      // MAJ front immédiate
-      setStudent(prev => ({
-        ...prev,
-        firstName,
-        lastName
-      }));
+      const updatedData = {
+        first_name: firstName.trim(),
+        last_name: lastName.trim()
+      };
 
-      // MAJ backend
-      await updateStudentApi(student.id, {
-        first_name: firstName,
-        last_name: lastName
-      },token);
+      // Appel API
+      const savedStudent = await updateStudentApi(student.id, updatedData, token);
+
+      // Met à jour le parent
+      updateStudentField(savedStudent);
 
       setEditing(false);
-      setError("");
-
-    } catch (e) {
-      console.error("Erreur lors de la sauvegarde :", e);
-      setError("Erreur lors de la sauvegarde.");
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde :", error);
+      alert("Impossible de sauvegarder !");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleCancel = () => {
+    setFirstName(student.first_name || "");
+    setLastName(student.last_name || "");
+    setEditing(false);
+  };
+
   return (
-    <div>
+    <div className="mb-3">
       {!editing ? (
-        <div className="flex justify-between items-center">
-          <p className="text-3xl font-bold text-red-600">
-            {student.firstName} {student.lastName}
-          </p>
-          <button onClick={() => setEditing(true)} className="text-red-600 px-3">
-            <Edit3 className="w-10 h-10" />
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-red-600">
+            {student.first_name} {student.last_name}
+          </h1>
+          <button onClick={() => setEditing(true)} className="hover:text-red-800">
+            <Edit3 />
           </button>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <input
-              type="text"
-              value={firstName}
-              placeholder="Prénom"
-              onChange={(e) => setFirstName(e.target.value)}
-              className="border border-gray-200 rounded-lg p-4"
-            />
-            <input
-              type="text"
-              value={lastName}
-              placeholder="Nom"
-              onChange={(e) => setLastName(e.target.value)}
-              className="border border-gray-200 rounded-lg p-4"
-            />
-          </div>
-
-          {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setEditing(false)} className="bg-gray-500 text-white px-3 py-1 rounded">
-              Annuler
-            </button>
-            <button onClick={handleSave} className="px-3 py-1 bg-red-600 text-white rounded-md">
-              <Save className="w-4 h-4 inline-block mr-1" />
-              Sauvegarder
-            </button>
-          </div>
-        </>
+        <div className="flex items-center space-x-2">
+          <input
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+            className="border p-2 rounded w-32"
+            placeholder="Prénom"
+          />
+          <input
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+            className="border p-2 rounded w-32"
+            placeholder="Nom"
+          />
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className={`bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <Save className="w-4 h-4" /> {loading ? "Sauvegarde..." : "Sauvegarder"}
+          </button>
+          <button
+            onClick={handleCancel}
+            className="bg-gray-300 text-gray-800 px-3 py-1 rounded flex items-center gap-1 hover:bg-gray-400"
+          >
+            <X className="w-4 h-4" /> Annuler
+          </button>
+        </div>
       )}
     </div>
   );

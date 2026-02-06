@@ -1,14 +1,14 @@
 import { useState, useEffect, useContext } from "react";
 import { Edit3, Save, X } from "lucide-react";
-import { updateStudentApi } from "../../api/apistudents";
-import { AppContext } from "../../Context/AppContext";
-
-export default function EditablePayment({ student, value, updateStudentField }) {
+import { updateStudentApi } from "../../../api/apistudents";
+import { AppContext } from "../../../Context/AppContext";
+import { School, CreditCard } from "lucide-react";
+export default function EditablePaymentStatus({ student, value, updateStudentField }) {
   const { token } = useContext(AppContext);
   const [editing, setEditing] = useState(false);
   const [tempValue, setTempValue] = useState({
     registration_status: value?.registration_status || "not_paid",
-    paid_months: value?.paid_months || [], // { monthId, paidDate }
+    paid_months: value?.paid_months || [],
   });
   const [loading, setLoading] = useState(false);
 
@@ -43,38 +43,30 @@ export default function EditablePayment({ student, value, updateStudentField }) 
 
   const handleMonthToggle = (monthId) => {
     setTempValue(prev => {
-      const exists = prev.paid_months.find(m => m.monthId === monthId);
-      let updatedMonths;
-      if (exists) {
-        // retirer
-        updatedMonths = prev.paid_months.filter(m => m.monthId !== monthId);
-      } else {
-        // ajouter avec date actuelle
-        updatedMonths = [...prev.paid_months, { monthId, paidDate: new Date().toISOString().split("T")[0] }];
-      }
-      return { ...prev, paid_months: updatedMonths };
+      const updatedMonths = prev.paid_months.includes(monthId)
+        ? prev.paid_months.filter(id => id !== monthId)
+        : [...prev.paid_months, monthId];
+      return {
+        ...prev,
+        paid_months: updatedMonths
+      };
     });
-  };
-
-  const handleMonthDateChange = (monthId, newDate) => {
-    setTempValue(prev => ({
-      ...prev,
-      paid_months: prev.paid_months.map(m =>
-        m.monthId === monthId ? { ...m, paidDate: newDate } : m
-      )
-    }));
   };
 
   const handleSave = async () => {
     if (!student?.id) return;
     setLoading(true);
     try {
+      // Appel API pour sauvegarder la valeur
       await updateStudentApi(student.id, { paymentStatus: tempValue }, token);
+
+      // Mise à jour du parent
       updateStudentField("paymentStatus", tempValue);
+
       setEditing(false);
     } catch (err) {
-      console.error("Erreur de mise à jour :", err);
-      alert("Impossible de sauvegarder le paiement !");
+      console.error("Erreur lors de la mise à jour du paiement :", err);
+      alert("Impossible de sauvegarder le statut de paiement !");
     } finally {
       setLoading(false);
     }
@@ -89,9 +81,14 @@ export default function EditablePayment({ student, value, updateStudentField }) 
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 flex flex-col gap-4">
+    <div >
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500 mb-1 font-medium">Paiement des frais</p>
+        <div className="flex items-center gap-2 mb-6 text-gray-700">
+            <CreditCard className="w-5 h-5 text-green-600" />
+            <h3 className="font-semibold text-lg">
+                Paiement
+            </h3>
+        </div>
         <div className="flex items-center gap-2">
           {editing && (
             <button onClick={handleCancel} className="text-gray-500 hover:text-gray-700">
@@ -139,32 +136,20 @@ export default function EditablePayment({ student, value, updateStudentField }) 
           <div>
             <p className="text-sm font-medium text-gray-700 mb-2">Mois d'écolage payés ({currentYear})</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-              {months.map(month => {
-                const paidMonth = tempValue.paid_months.find(m => m.monthId === month.id);
-                return (
-                  <div key={month.id} className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      onClick={() => handleMonthToggle(month.id)}
-                      className={`p-2 border rounded-lg text-sm transition-colors duration-200 ${
-                        paidMonth
-                          ? "border-red-500 bg-red-50 text-red-700 font-semibold"
-                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {month.name}
-                    </button>
-                    {paidMonth && (
-                      <input
-                        type="date"
-                        value={paidMonth.paidDate}
-                        onChange={(e) => handleMonthDateChange(month.id, e.target.value)}
-                        className="border rounded-md p-1 text-sm"
-                      />
-                    )}
-                  </div>
-                );
-              })}
+              {months.map(month => (
+                <button
+                  key={month.id}
+                  type="button"
+                  onClick={() => handleMonthToggle(month.id)}
+                  className={`p-2 border rounded-lg text-sm transition-colors duration-200 ${
+                    tempValue.paid_months.includes(month.id)
+                      ? "border-red-500 bg-red-50 text-red-700 font-semibold"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {month.name}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -191,7 +176,7 @@ export default function EditablePayment({ student, value, updateStudentField }) 
             Statut inscription : {tempValue.registration_status === "not_paid" ? "Non payé" : tempValue.registration_status === "half" ? "Moitié payé" : "Tout payé"}
           </p>
           <p className="text-gray-700 text-sm">
-            Mois payés : {tempValue.paid_months.length > 0 ? tempValue.paid_months.map(m => months.find(mon => mon.id === m.monthId)?.name + ` (${m.paidDate})`).join(", ") : "Aucun"}
+            Mois payés : {tempValue.paid_months.length > 0 ? tempValue.paid_months.map(id => months.find(m => m.id === id)?.name).join(", ") : "Aucun"}
           </p>
           <p className="text-gray-700 text-sm font-semibold">
             Total : {totalAmount.toLocaleString()} MGA

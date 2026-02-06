@@ -52,3 +52,6 @@
 # Documentation premier deployement
 
 php artisan db:seed --class=AdminSeeder
+
+'firstName' => 'Admin'
+'password' => 12345678

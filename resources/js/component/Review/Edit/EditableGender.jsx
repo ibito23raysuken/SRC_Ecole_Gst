@@ -1,29 +1,30 @@
-import { useState, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Edit3, Save } from "lucide-react";
 import { updateStudentApi } from "../../../api/apistudents";
 import { AppContext } from "../../../Context/AppContext";
 
-export default function EditableGender({ value, student, setStudent }) {
+export default function EditableGender({ value, student, updateStudentField }) {
   const [editing, setEditing] = useState(false);
   const [tempValue, setTempValue] = useState(value || "");
   const { token } = useContext(AppContext);
 
-  const handleSave = async () => {
-    try {
-      const response = await updateStudentApi(
-        student.id,
-        { gender: tempValue }, // clé backend
-        token
-      );
+  useEffect(() => {
+    setTempValue(value || "");
+  }, [value]);
 
-      if (response.student) {
-        setStudent(prev => ({ ...prev, ...response.student }));
-      }
+  const handleSave = async () => {
+    if (!student?.id) return;
+
+    try {
+      await updateStudentApi(student.id, { gender: tempValue }, token);
+
+      // mise à jour du parent
+      updateStudentField("gender", tempValue);
 
       setEditing(false);
     } catch (err) {
-      console.error("Erreur lors de la mise à jour :", err);
-      alert("Erreur lors de la sauvegarde du genre.");
+      console.error("Erreur lors de la mise à jour du genre :", err);
+      alert("Impossible de sauvegarder le genre !");
     }
   };
 
@@ -34,7 +35,7 @@ export default function EditableGender({ value, student, setStudent }) {
 
         {editing ? (
           <select
-            value={tempValue}
+            value={tempValue || ""}
             onChange={(e) => setTempValue(e.target.value)}
             className="border rounded-md p-1"
           >

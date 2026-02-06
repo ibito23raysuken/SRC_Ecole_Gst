@@ -1,70 +1,108 @@
-// PerformanceSection.jsx
-import React from "react";
-import Section from "../Section/section";
-import EditableField from "../Edit/EditableField";
+import React, { useState } from "react";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import { Card, CardContent } from "@/components/ui/card";
 
-export default function SectionPerformance({ student }) {
-    return (
-        <Section title="Performance">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+// Données exemple
+const examData = {
+  Examen1: [
+    { subject: "Maths", note: 14 },
+    { subject: "Francais", note: 12 },
+    { subject: "Physique", note: 15 },
+    { subject: "SVT", note: 13 },
+    { subject: "Histoire", note: 11 },
+  ],
+  Examen2: [
+    { subject: "Maths", note: 16 },
+    { subject: "Francais", note: 13 },
+    { subject: "Physique", note: 14 },
+    { subject: "SVT", note: 15 },
+    { subject: "Histoire", note: 12 },
+  ],
+};
 
-                {/* Notes récentes */}
-                <div className="md:col-span-2">
-                    <h3 className="font-medium text-gray-800 mb-4">Notes récentes</h3>
+const averageData = [
+  { exam: "Examen1", moyenne: 13 },
+  { exam: "Examen2", moyenne: 14 },
+];
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {student.grades && Object.entries(student.grades).map(([subject, grade], idx) => (
-                            <SubjectGrade key={idx} subject={subject} grade={grade} />
-                        ))}
-                    </div>
-                </div>
+export default function PerformanceVisual() {
+  const [selectedExam, setSelectedExam] = useState("Examen1");
 
-                {/* Assiduité */}
-                <div className="md:col-span-2">
-                    <h3 className="font-medium text-gray-800 mb-4">Assiduité</h3>
+  return (
+    <div className="space-y-6">
+      {/* Sélection examen */}
+      <div className="flex gap-3">
+        {Object.keys(examData).map((exam) => (
+          <button
+            key={exam}
+            onClick={() => setSelectedExam(exam)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              selectedExam === exam
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {exam}
+          </button>
+        ))}
+      </div>
 
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-gray-700">Taux de présence</span>
-                            <span className="font-medium text-red-700">
-                                {student.attendance || 0}%
-                            </span>
-                        </div>
+      {/* Radar chart */}
+      <Card className="rounded-2xl shadow-sm">
+        <CardContent className="h-80">
+          <h3 className="text-lg font-semibold mb-3">Performance par matière</h3>
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={examData[selectedExam]}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="subject" />
+              <PolarRadiusAxis angle={30} domain={[0, 20]} />
+              <Radar
+                name="Note"
+                dataKey="note"
+                stroke="#2563eb"
+                fill="#3b82f6"
+                fillOpacity={0.6}
+              />
+              <Tooltip />
+            </RadarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                                className="h-2.5 rounded-full bg-red-600"
-                                style={{ width: `${student.attendance || 0}%` }}
-                            ></div>
-                        </div>
-
-                        <p className="mt-3 text-sm text-gray-600">
-                            {student.attendance > 90
-                                ? "Excellente assiduité"
-                                : student.attendance > 80
-                                    ? "Bonne assiduité"
-                                    : "Assiduité à améliorer"}
-                        </p>
-                    </div>
-                </div>
-
-            </div>
-        </Section>
-    );
-}
-// Affichage des notes
-function SubjectGrade({ subject, grade }) {
-    const getGradeColor = (grade) => {
-        if (grade >= 16) return 'text-green-600';
-        if (grade >= 14) return 'text-green-500';
-        if (grade >= 12) return 'text-yellow-600';
-        if (grade >= 10) return 'text-orange-500';
-        return 'text-red-600';
-    };
-    return (
-        <div className="border border-gray-200 rounded-lg p-4 text-center">
-            <p className="text-gray-700 mb-2 capitalize">{subject}</p>
-            <div className={`text-2xl font-bold ${getGradeColor(grade)}`}>{grade}/20</div>
-        </div>
-    );
+      {/* Courbe moyenne */}
+      <Card className="rounded-2xl shadow-sm">
+        <CardContent className="h-72">
+          <h3 className="text-lg font-semibold mb-3">Évolution de la moyenne</h3>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={averageData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="exam" />
+              <YAxis domain={[0, 20]} />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="moyenne"
+                stroke="#16a34a"
+                strokeWidth={3}
+                dot={{ r: 4 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

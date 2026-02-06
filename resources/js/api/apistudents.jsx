@@ -1,134 +1,171 @@
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: "http://localhost:8000/api",
+  headers: { Accept: "application/json" }
+});
+
+/**
+ * Convert Front → Back (camelCase → snake_case)
+ */
+export function mapToBackend(data) {
+  const get = key => data.get(key) ?? null;
+
+  const parseJSON = str => {
+    try {
+      return str ? JSON.parse(str) : null;
+    } catch (e) {
+      console.warn(`Impossible de parser ${str}`, e);
+      return null;
+    }
+  };
+
+
+  return {
+    first_name: get("firstName"),
+    last_name: get("lastName"),
+    birth_date: get("birthDate"),
+    birth_place: get("birthPlace"),
+    gender: get("gender"),
+    nationality: get("nationality"),
+    address: get("address"),
+    city: get("city"),
+    postal_code: get("postalCode"),
+    phone: get("phone"),
+    previous_school: get("previousSchool"),
+    previous_class: get("previousClass"),
+    academic_year: get("academicYear"),
+    grade_level: get("gradeLevel"),
+    special_needs: get("specialNeeds"),
+
+    dossier: parseJSON(get("dossier")) || {
+      birthCertificate: false,
+      medicalCertificate: false,
+      reportCard: false,
+      idCard: false,
+    },
+
+    tuition_payment: parseJSON(get("tuitionPayment")) || {
+      registration_status: "not_paid",
+      tuition_status: "not_paid",
+      paid_months: [],
+    },
+
+    student_image: get("student_image"),
+    parents: parseJSON(get("parents")) || [],
+  };
+}
+
+
+
+
+/**
+ * Convert Back → Front (snake_case → camelCase)
+ */
+function mapToFrontend(data) {
+  return {
+    ...data,
+    firstName: data.first_name,
+    lastName: data.last_name,
+    birthDate: data.birth_date,
+    birthPlace: data.birth_place,
+    postalCode: data.postal_code,
+    academicYear: data.academic_year,
+    gradeLevel: data.grade_level,
+
+    dossier: {
+      birthCertificate: data.birth_certificate ?? false,
+      medicalCertificate: data.medical_certificate ?? false,
+      reportCard: data.report_card ?? false,
+      idCard: data.id_card ?? false,
+    },
+
+    payment: {
+      tuitionPayment: data.tuition_payment ?? false,
+      registrationMonths: data.registration_months ?? [],
+    },
+
+    parents: data.parents ?? []
+  };
+}
+
+/**
+ * ➕ CREATE STUDENT
+ */
+export async function createStudentApi(data, token) {
+    const payload = mapToBackend(data);
+  const response = await api.post("/students", payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }
+  });
+
+  return mapToFrontend(response.data);
+}
+
+/**
+ * ✏️ UPDATE STUDENT (avec image)
+ */
+
 
 export async function updateStudentApi(studentId, data, token) {
-    console.log("updateStudentApi called with:", studentId, data.birth_place);
+  console.log("Payload sent:", data);
 
-    const response = await fetch(`http://localhost:8000/api/students/${studentId}`, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${token}`
-        },
-        body: (() => {
-            // formData obligatoire si tu envoies potentiellement une image
-            const formData = new FormData();
+  const formData = new FormData();
+  formData.append("_method", "PATCH");
 
-            formData.append("_method", "PATCH");
-
-            if (data.first_name) formData.append("first_name", data.first_name);
-            if (data.last_name) formData.append("last_name", data.last_name);
-            if (data.academicYear) formData.append("academic_year", data.academicYear);
-            if (data.gradeLevel) formData.append("grade_level", data.gradeLevel);
-            if (data.birth_date) formData.append("birth_date", data.birth_date);
-            if (data.birth_place) formData.append("birth_place", data.birth_place);
-            if (data.gender) formData.append("gender", data.gender);
-            if (data.nationality) formData.append("nationality", data.nationality);
-            if (data.address) formData.append("address", data.address);
-            if (data.city) formData.append("city", data.city);
-            if (data.postal_code) formData.append("postal_code", data.postal_code);
-            if (data.phone) formData.append("phone", data.phone);
-            if (data.student_image) {
-                formData.append("student_image", data.student_image);
-            }
-
-            return formData;
-        })()
-    });
-
-    // Gestion des erreurs
-    if (!response.ok) {
-        let message = "Erreur lors de la sauvegarde";
-        try {
-            const err = await response.json();
-            message = err.message || JSON.stringify(err) || message;
-        } catch { }
-        throw new Error(message);
+  // Ajout dynamique des champs
+  Object.keys(data).forEach((key) => {
+    const value = data[key];
+    if (value instanceof File) {
+      formData.append(key, value);
+    } else if (value !== undefined && value !== null) {
+      formData.append(key, String(value)); // forcer string pour éviter 422
     }
+  });
 
-    // 👉 OBLIGATOIRE : renvoyer le JSON du backend
-    return await response.json();
+  // Debug : vérifier ce qui est envoyé
+  for (let pair of formData.entries()) {
+    console.log(pair[0], pair[1]);
+  }
+
+  const response = await api.post(`/students/${studentId}`, formData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    }
+  });
+
+  return response.data;
 }
 
 
+
+
 /**
- * getStudentsApi
- * Récupère tous les étudiants
- * @returns {Promise<Array>} - Liste des étudiants
+ * 🔍 GET STUDENT BY ID
  */
 export async function getStudentsApi(id, token) {
-    const response = await fetch(`http://localhost:8000/api/students/${id}`, {
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        }
-    });
-
-    if (!response.ok) {
-        throw new Error(`Erreur lors de la récupération de l'étudiant (HTTP ${response.status})`);
-    }
-
-    const data = await response.json();
-
-    // Formatage directement ici
-    return {
-        ...data,
-        firstName: data.first_name,
-        lastName: data.last_name,
-        birthDate: data.birth_date,
-        birthPlace: data.birth_place,
-        postalCode: data.postal_code,
-        academicYear: data.academic_year,
-        gradeLevel: data.grade_level,
-        student_image: data.student_image,
-        dossier: {
-            birthCertificate: data.dossier?.birth_certificate || false,
-            medicalCertificate: data.dossier?.medical_certificate || false,
-            reportCard: data.dossier?.report_card || false,
-            photo: data.dossier?.photo || false,
-            idCard: data.dossier?.id_card || false,
-        },
-        paymentStatus: data.payment_status || 'inconnu',
-        parents: data.parents || [],
-        grades: data.grades || {},
-        attendance: data.attendance || 0,
-        documents: data.documents || []
-    };
+  const response = await api.get(`/students/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+}
+/**
+ * 🔍 GET all STUDENT
+ */
+export async function getAllStudentsApi(token) {
+  const response = await api.get('/students', {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
 }
 
 /**
- * createStudentApi
- * Crée un nouvel étudiant
- * @param {object} data - Données de l'étudiant { first_name, last_name }
- * @returns {Promise<object>} - Étudiant créé
+ * ❌ DELETE STUDENT
  */
-export async function createStudentApi(data) {
-    const response = await fetch('/api/students', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la création de l\'étudiant');
-    }
-
-    return await response.json();
-}
-
-/**
- * deleteStudentApi
- * Supprime un étudiant
- * @param {number|string} studentId - ID de l'étudiant
- * @returns {Promise<void>}
- */
-export async function deleteStudentApi(studentId) {
-    const response = await fetch(`/api/students/${studentId}`, {
-        method: 'DELETE'
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la suppression de l\'étudiant');
-    }
+export async function deleteStudentApi(studentId, token) {
+  await api.delete(`/students/${studentId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
 }

@@ -9,6 +9,7 @@ import Liste_students from './Pages/Students/Liste_students';
 import Create from './Pages/Students/Create';
 import Review from './Pages/Students/Review';
 import SchoolDashboard from './Pages/Students/SchoolDashboard';
+import Parametre from './Pages/Parametre/Parametre';
 export default function App() {
     const { user } = useContext(AppContext);
     const isGuest = Object.keys(user || {}).length === 0;
@@ -28,6 +29,7 @@ export default function App() {
                     <Route path="/students/:id" element={isGuest ? <Home /> : <Review />} />
                     <Route path="/students/create" element={<Create/>} />
                     <Route path="/students/SchoolDashboard" element={isGuest ? <Home /> : <SchoolDashboard />} />
+                    <Route path="/parametre" element={isGuest ? <Home /> : <Parametre />} />
                 </Route>
             </Routes>
         </BrowserRouter>

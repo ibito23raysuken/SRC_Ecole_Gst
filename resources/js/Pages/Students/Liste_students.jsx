@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AppContext } from '../../Context/AppContext';
+import { getAllStudentsApi } from '../../api/apistudents';
 
 export default function StudentList() {
   const { token } = useContext(AppContext);
@@ -12,31 +13,21 @@ export default function StudentList() {
   const studentsPerPage = 8;
 
   // Récupérer les étudiants depuis l'API
-  useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const response = await fetch('/api/students', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+useEffect(() => {
+  const fetchStudents = async () => {
+    try {
+      const data = await getAllStudentsApi(token); // récupérer tous les étudiants
+      setStudents(data);
+    } catch (err) {
+      console.error("Erreur de chargement:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        if (!response.ok) {
-          throw new Error('Erreur de chargement des données');
-        }
-
-        const data = await response.json();
-        setStudents(data);
-      } catch (err) {
-        console.error("Erreur de chargement:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStudents();
-  }, [token]);
+  fetchStudents();
+}, [token]);
 
   // Filtrer les étudiants
   const filteredStudents = students.filter(student => {

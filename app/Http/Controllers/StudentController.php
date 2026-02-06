@@ -10,6 +10,7 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use SebastianBergmann\Environment\Console;
 
 class StudentController extends Controller implements HasMiddleware
 {
@@ -45,42 +46,31 @@ class StudentController extends Controller implements HasMiddleware
                 $request->merge(['dossier' => json_decode($request->dossier, true)]);
             }
 
-        $validator = Validator::make($request->all(), [
-            'firstName' => 'required|string|max:255',
-            'lastName' => 'required|string|max:255',
-            'birthDate' => 'required|date|before:today',
-            'gender' => 'required|in:male,female',
+            $validator = Validator::make($request->all(), [
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'birth_date' => 'required|date|before:today',
+                'gender' => 'required|in:male,female',
 
-            'student_image'=>'image|nullable|max:1999',
+                'student_image'=>'image|nullable|max:1999',
 
-            'address' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'postalCode' => 'nullable|string|max:10',
-            'phone' => 'required|string|max:20',
+                'address' => 'nullable|string|max:255',
+                'city' => 'nullable|string|max:255',
+                'postal_code' => 'nullable|string|max:10',
+                'phone' => 'required|string|max:20',
 
-            'academicYear' => 'nullable|integer|min:2020|max:2030',
-            'gradeLevel' => 'nullable|in:PS,MS,GS,CP,CE1,CE2,CM1,CM2,6e,5e,4e,3e,2nde,1ère,Term',
+                'academic_year' => 'nullable|integer|min:2020|max:2030',
+                'grade_level' => 'nullable|in:PS,MS,GS,CP,CE1,CE2,CM1,CM2,6e,5e,4e,3e,2nde,1ère,Term',
 
-            'payment.tuitionPayment' => 'required|in:half,full,not_paid',
-            'payment.registrationMonths' => 'nullable|array',
-            'payment.registrationMonths.*' => 'string',
+                'tuition_payment.registration_status' => 'required|in:half,full,not_paid',
+                'tuition_payment.paid_months' => 'nullable|array',
+                'tuition_payment.paid_months.*' => 'integer',
+            ]);
 
-            'parents' => 'nullable|array',
-            'parents.*.name' => 'sometimes|nullable|string|max:255',
-            'parents.*.phone' => 'sometimes|nullable|string|max:20',
-            'parents.*.relationship' => 'sometimes|nullable|in:mother,father,guardian',
-
-            'dossier' => 'nullable|array',
-            'dossier.birthCertificate' => 'sometimes|boolean',
-            'dossier.medicalCertificate' => 'sometimes|boolean',
-            'dossier.reportCard' => 'sometimes|boolean',
-            'dossier.photo' => 'sometimes|boolean',
-            'dossier.idCard' => 'sometimes|boolean',
-        ]);
         /////////////////////////
         // Vérifier si un étudiant avec le même prénom et nom existe déjà
-            $existingStudent = Student::where('first_name', $request->firstName)
-                                    ->where('last_name', $request->lastName)
+            $existingStudent = Student::where('first_name', $request->first_name)
+                                    ->where('last_name', $request->last_name)
                                     ->first();
 
             if ($existingStudent) {
@@ -103,26 +93,26 @@ class StudentController extends Controller implements HasMiddleware
         if ($validator->fails()) {
             return response()->json([
                 'errors' => $validator->errors()
-            ], 422);
+            ,'data'=>$request->request], 422);
         }
 
         // Création de l'étudiant
                 $student = Student::create([
-                    'first_name' => $request->firstName,
-                    'last_name' => $request->lastName,
-                    'birth_date' => $request->birthDate,
-                    'birth_place' => $request->birthPlace,
+                    'first_name' => $request->first_name,
+                    'last_name' => $request->last_name,
+                    'birth_date' => $request->birth_date,
+                    'birth_place' => $request->birth_place,
                     'gender' => $request->gender,
                     'nationality' => $request->nationality,
                     'address' => $request->address,
                     'city' => $request->city,
-                    'postal_code' => $request->postalCode,
+                    'postal_code' => $request->postal_code,
                     'phone' => $request->phone,
-                    'previous_school' => $request->previousSchool,
-                    'previous_class' => $request->previousClass,
-                    'academic_year' => $request->academicYear,
-                    'grade_level' => $request->gradeLevel,
-                    'special_needs' => $request->specialNeeds,
+                    'previous_school' => $request->previous_school,
+                    'previous_class' => $request->previous_class,
+                    'academic_year' => $request->academic_year,
+                    'grade_level' => $request->grade_level,
+                    'special_needs' => $request->special_needs,
 
                     // Ajout du chemin de la photo
                     'student_image' => $path,
@@ -134,8 +124,8 @@ class StudentController extends Controller implements HasMiddleware
                     'id_card' => $request->dossier['idCard'] ?? false,
 
                     // Paiement
-                    'tuition_payment' => $request->payment['tuitionPayment'],
-                    'registration_months' => $request->payment['registrationMonths'] ?? [],
+                    'tuition_payment' => $request->tuition_payment['registration_status'],
+                    'registration_months' => $request->tuition_payment['registration_months'] ?? [],
                 ]);
                                     // Parents
                     if ($request->has('parents') && is_array($request->parents)) {
@@ -173,7 +163,7 @@ class StudentController extends Controller implements HasMiddleware
 public function update(Request $request, Student $student){
     Gate::authorize('modify', $student);
 
-    // 1. Décodage si le front envoie des données JSON stringifiées
+    // 1. Décodage JSON si nécessaire
     if ($request->has('parents') && is_string($request->parents)) {
         $request->merge(['parents' => json_decode($request->parents, true)]);
     }
@@ -214,9 +204,7 @@ public function update(Request $request, Student $student){
     ]);
 
     if ($validator->fails()) {
-        return response()->json([
-            'errors' => $validator->errors()
-        ], 422);
+        return response()->json(['errors' => $validator->errors()], 422);
     }
 
     // 3. Vérification conflit nom/prénom
@@ -226,13 +214,19 @@ public function update(Request $request, Student $student){
         ->first();
 
     if ($conflict) {
-        return response()->json([
-            'message' => 'Un étudiant avec ce nom et prénom existe déjà.'
-        ], 409);
+        return response()->json(['message' => 'Un étudiant avec ce nom et prénom existe déjà.'], 409);
     }
 
-    // 4. Gestion de l’image
-    $modifiedSections = [];
+    // 4. Initialisation des sections modifiées
+    $modifiedSections = [
+        'personal_info' => [],
+        'dossier' => [],
+        'payment' => [],
+        'parents' => false,
+        'student_image' => false
+    ];
+
+    // 5. Gestion de l’image
     if ($request->hasFile('student_image')) {
         $fileNameWithExt = $request->file('student_image')->getClientOriginalName();
         $fileName = pathinfo($fileNameWithExt, PATHINFO_FILENAME);
@@ -241,19 +235,19 @@ public function update(Request $request, Student $student){
 
         $path = $request->file('student_image')->storeAs('profile_photo', $fileNameToStore);
 
-        if ($student->student_image !== 'profile_photo/noimage.png') {
+        if ($student->student_image && $student->student_image !== 'profile_photo/noimage.png') {
             Storage::delete($student->student_image);
         }
 
         $student->student_image = $path;
-        $modifiedSections[] = 'student_image';
+        $modifiedSections['student_image'] = true;
     } else {
         if (!$student->student_image) {
             $student->student_image = 'profile_photo/noimage.png';
         }
     }
 
-    // 5. Préparation des données pour mise à jour
+    // 6. Préparation des données pour mise à jour
     $updateData = [];
     $fields = [
         'first_name', 'last_name', 'birth_date', 'birth_place', 'gender',
@@ -264,11 +258,11 @@ public function update(Request $request, Student $student){
     foreach ($fields as $field) {
         if ($request->has($field) && $request->input($field) != $student->$field) {
             $updateData[$field] = $request->input($field);
-            $modifiedSections[] = $field;
+            $modifiedSections['personal_info'][] = $field;
         }
     }
 
-    // Dossier
+    // 7. Dossier
     $dossierMap = [
         'birthCertificate' => 'birth_certificate',
         'medicalCertificate' => 'medical_certificate',
@@ -280,27 +274,27 @@ public function update(Request $request, Student $student){
         $newValue = $request->dossier[$reqKey] ?? $student->$dbField;
         if ($newValue != $student->$dbField) {
             $updateData[$dbField] = $newValue;
-            $modifiedSections[] = 'dossier.' . $reqKey;
+            $modifiedSections['dossier'][] = $reqKey;
         }
     }
 
-    // Paiement
+    // 8. Paiement
     if ($request->has('payment')) {
         if (($tp = $request->payment['tuitionPayment'] ?? null) !== null && $tp != $student->tuition_payment) {
             $updateData['tuition_payment'] = $tp;
-            $modifiedSections[] = 'payment.tuitionPayment';
+            $modifiedSections['payment'][] = 'tuitionPayment';
         }
         if (($months = $request->payment['registrationMonths'] ?? null) !== null && $months != $student->registration_months) {
             $updateData['registration_months'] = $months;
-            $modifiedSections[] = 'payment.registrationMonths';
+            $modifiedSections['payment'][] = 'registrationMonths';
         }
     }
 
     $student->update($updateData);
 
-    // 6. Mise à jour des parents
-    Guardian::where('student_id', $student->id)->delete();
+    // 9. Mise à jour des parents
     if ($request->has('parents') && is_array($request->parents)) {
+        Guardian::where('student_id', $student->id)->delete();
         foreach ($request->parents as $p) {
             Guardian::create([
                 'student_id' => $student->id,
@@ -311,9 +305,10 @@ public function update(Request $request, Student $student){
                 'profession' => $p['profession'] ?? null,
             ]);
         }
-        $modifiedSections[] = 'parents';
+        $modifiedSections['parents'] = true;
     }
 
+    // 10. Retour JSON
     return response()->json([
         'message' => 'Student updated successfully',
         'student' => $student->fresh(),
@@ -321,6 +316,7 @@ public function update(Request $request, Student $student){
         'modifiedSections' => $modifiedSections
     ], 200);
 }
+
 
 
 
