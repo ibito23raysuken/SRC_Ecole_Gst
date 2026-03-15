@@ -1,12 +1,12 @@
-// resources/js/component/Create/DocumentsSection.jsx
+// DocumentsSection.jsx
 import React from "react";
 
 export default function DocumentsSection({ student, handleChange, errors }) {
   const documents = [
-    { key: "birthCertificate", label: "Acte de naissance" },
-    { key: "medicalCertificate", label: "Certificat médical" },
-    { key: "reportCard", label: "Relevé de notes" },
-    { key: "idCard", label: "Carte d'identité" },
+    { key: "birth_certificate", label: "Acte de naissance" },
+    { key: "medical_certificate", label: "Certificat médical" },
+    { key: "report_card", label: "Relevé de notes" },
+    { key: "id_card", label: "Carte d'identité" },
   ];
 
   return (
@@ -27,7 +27,7 @@ export default function DocumentsSection({ student, handleChange, errors }) {
                 type="checkbox"
                 name={key}
                 checked={student[key] || false}
-                onChange={handleChange}
+                onChange={handleChange} // <-- ici
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <span className="text-gray-700">{label}</span>

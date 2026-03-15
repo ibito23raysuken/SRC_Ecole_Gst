@@ -1,4 +1,3 @@
-// resources/js/pages/StudentCreate.jsx
 import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../../Context/AppContext";
@@ -6,7 +5,6 @@ import { createStudentApi } from "../../api/apiStudents";
 import { toast } from "react-hot-toast";
 import { Save, X } from "lucide-react";
 
-// Sections
 import PersonalInfoSection from "../../component/Create/PersonalInfoSection";
 import ContactSection from "../../component/Create/ContactSection";
 import AcademicInfoSection from "../../component/Create/AcademicInfoSection";
@@ -15,7 +13,6 @@ import DocumentsSection from "../../component/Create/DocumentsSection";
 import GuardianSection from "../../component/Create/GuardianSection";
 import TuitionPayment from "../../component/Create/TuitionPayment";
 
-// Validation FRONT
 import { validateStudent } from "../../component/outils/validateStudent";
 
 export default function StudentCreate() {
@@ -23,57 +20,75 @@ export default function StudentCreate() {
   const navigate = useNavigate();
 
   const [student, setStudent] = useState({
-    firstName: "",
-    lastName: "",
-    birthDate: "",
-    birthPlace: "",
+    first_name: "",
+    last_name: "",
+    birth_date: "",
+    birth_place: "",
     gender: "male",
     nationality: "",
     address: "",
     city: "",
-    postalCode: "",
+    postal_code: "",
     phone: "",
-    previousSchool: "",
-    previousClass: "",
-    academicYear: new Date().getFullYear().toString(),
-    gradeLevel: "",
-    specialNeeds: "",
-    birthCertificate: false,
-    medicalCertificate: false,
-    reportCard: false,
-    idCard: false,
-    tuitionPayment: {
-        registration_status: "not_paid",
-        tuition_status: "not_paid",
-        paid_months: [],
-        },
-    registrationMonths: [],
-    studentImage: null,
+    previous_school: "",
+    previous_class: "",
+    academic_year: new Date().getFullYear().toString(),
+    grade_level: "",
+    special_needs: "",
+
+    birth_certificate: false,
+    medical_certificate: false,
+    report_card: false,
+    id_card: false,
+
+    registration_status: "not_paid",
+    paid_months: [],
+
+    student_image: null,
+
+    parents: [],
+    guardians_data: {} // 🔥 important
   });
 
   const [errors, setErrors] = useState({});
 
+  // 🔹 Gestion globale des changements
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    setStudent({
-      ...student,
-      [name]: type === "checkbox" ? checked : type === "file" ? files[0] : value,
-    });
 
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+    if (name.startsWith("guardian_")) {
+      setStudent(prev => ({
+        ...prev,
+        guardians_data: {
+          ...prev.guardians_data,
+          [name]:
+            type === "checkbox"
+              ? checked
+              : type === "file"
+              ? files[0]
+              : value
+        }
+      }));
+    } else {
+      setStudent(prev => ({
+        ...prev,
+        [name]:
+          type === "checkbox"
+            ? checked
+            : type === "file"
+            ? files[0]
+            : value
+      }));
     }
   };
 
+  // 🔹 Submit
+// 🔹 Submit
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-  // Validation front
   const validationErrors = validateStudent(student);
+
   if (Object.keys(validationErrors).length > 0) {
     setErrors(validationErrors);
     toast.error(Object.values(validationErrors)[0][0]);
@@ -83,53 +98,72 @@ const handleSubmit = async (e) => {
   try {
     const formData = new FormData();
 
-    Object.keys(student).forEach((key) => {
-      if (key === "registrationMonths") {
-        // Envoyer chaque mois séparément
-        student[key].forEach((month) => {
-          formData.append("registrationMonths[]", month);
-        });
-      } else if (key === "studentImage") {
-        if (student[key]) formData.append("studentImage", student[key]);
-      } else if (key === "tuitionPayment") {
-        // ✅ STRINGIFY pour JSON
-        formData.append("tuitionPayment", JSON.stringify(student[key]));
-      } else if (key === "parents") {
-        formData.append("parents", JSON.stringify(student[key] || []));
-      } else if (
-        key === "birthCertificate" ||
-        key === "medicalCertificate" ||
-        key === "reportCard" ||
-        key === "idCard"
-      ) {
-        // créer un objet dossier et stringify
-        const dossier = {
-          birthCertificate: student.birthCertificate,
-          medicalCertificate: student.medicalCertificate,
-          reportCard: student.reportCard,
-          idCard: student.idCard,
-        };
-        formData.append("dossier", JSON.stringify(dossier));
-      } else {
-        formData.append(key, student[key] || "");
-      }
+    // 1️⃣ Champs simples
+    [
+      "first_name", "last_name", "birth_date", "birth_place",
+      "gender", "nationality", "address", "city", "postal_code",
+      "phone", "previous_school", "previous_class",
+      "academic_year", "grade_level", "special_needs"
+    ].forEach(field =>
+      formData.append(field, student[field] ?? "")
+    );
+
+    // 2️⃣ Documents
+    formData.append("birth_certificate", student.birth_certificate ? 1 : 0);
+    formData.append("medical_certificate", student.medical_certificate ? 1 : 0);
+    formData.append("report_card", student.report_card ? 1 : 0);
+    formData.append("id_card", student.id_card ? 1 : 0);
+
+    // 3️⃣ Image
+    if (student.student_image instanceof File) {
+      formData.append("profile_photo", student.student_image);
+    }
+
+    // 4️⃣ Paiement
+    formData.append("registration_status", student.registration_status);
+
+    student.paid_months.forEach((month, index) => {
+      formData.append(`paid_months[${index}]`, month);
     });
 
-    // Debug : vérifier ce qui est envoyé
-    for (let pair of formData.entries()) {
-      console.log(pair[0], pair[1]);
-    }
+    // 5️⃣ 🔥 TRANSFORMER guardians_data → parents[]
+    const grouped = {};
+    Object.keys(student.guardians_data || {}).forEach((key) => {
+      const match = key.match(/^guardian_(\d+)_(.+)$/);
+      if (match) {
+        const id = match[1];
+        const field = match[2];
+        if (!grouped[id]) grouped[id] = {};
+        grouped[id][field] = student.guardians_data[key];
+      }
+    });
+    const parentsArray = Object.values(grouped).filter(g => g.name && g.name.trim() !== "");
+    formData.append("parents", JSON.stringify(parentsArray));
 
     await createStudentApi(formData, token);
 
+    // ✅ Succès
     toast.success("Étudiant créé avec succès !");
     navigate("/students");
+
   } catch (error) {
-    if (error.errors) {
-      setErrors(error.errors);
-      toast.error(Object.values(error.errors)[0][0]);
+    // ⚠️ Gestion des erreurs
+    if (error.response) {
+      // Erreur de validation côté serveur
+      const status = error.response.status;
+      const data = error.response.data;
+
+      if (status === 409) {
+        // Étudiant avec le même prénom+nom existe déjà
+        toast.error(data.message || "Un étudiant avec ce nom et prénom existe déjà.");
+      } else if (data.errors) {
+        setErrors(data.errors);
+        toast.error(Object.values(data.errors)[0][0]);
+      } else {
+        toast.error("Erreur lors de l'enregistrement");
+      }
     } else {
-      toast.error(error.message || "Erreur lors de l'enregistrement");
+      toast.error("Erreur réseau ou serveur indisponible");
     }
   }
 };
@@ -137,29 +171,71 @@ const handleSubmit = async (e) => {
 
   return (
     <div className="flex">
-      <div className="w-64 min-h-screen">{/* Sidebar */}</div>
+      <div className="flex-1 p-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
 
-      <div className="flex-1 min-h-screen p-4 lg:p-6">
-        <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8">
+          <PersonalInfoSection
+            student={student}
+            handleChange={handleChange}
+            errors={errors}
+          />
 
-          <PersonalInfoSection student={student} handleChange={handleChange} errors={errors} />
-          <ContactSection student={student} handleChange={handleChange} errors={errors} />
-          <AcademicInfoSection student={student} handleChange={handleChange} errors={errors} />
-          <GuardianSection student={student} handleChange={handleChange} errors={errors} />
-          <NotesSection student={student} handleChange={handleChange} errors={errors} />
-          <DocumentsSection student={student} handleChange={handleChange} errors={errors} />
-          <TuitionPayment student={student} handleChange={handleChange} errors={errors} />
+          <ContactSection
+            student={student}
+            handleChange={handleChange}
+            setStudent={setStudent}
+            errors={errors}
+          />
 
-          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
-            <button type="button" onClick={() => navigate("/students")}
-              className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
-              <X className="w-4 h-4" /> Annuler
+          <AcademicInfoSection
+            student={student}
+            handleChange={handleChange}
+            errors={errors}
+          />
+
+          <GuardianSection
+            student={student}
+            handleChange={handleChange}
+            errors={errors}
+            setStudent={setStudent}
+        />
+
+
+          <NotesSection
+            student={student}
+            handleChange={handleChange}
+            errors={errors}
+          />
+
+          <DocumentsSection
+            student={student}
+            handleChange={handleChange}
+            errors={errors}
+          />
+
+          <TuitionPayment
+            student={student}
+            setStudent={setStudent}
+            errors={errors}
+          />
+
+          <div className="flex justify-end gap-4 pt-6 border-t">
+            <button
+              type="button"
+              onClick={() => navigate("/students")}
+              className="px-6 py-3 bg-gray-500 text-white rounded-lg"
+            >
+              <X className="w-4 h-4 inline" /> Annuler
             </button>
-            <button type="submit"
-              className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700">
-              <Save className="w-4 h-4" /> Enregistrer
+
+            <button
+              type="submit"
+              className="px-6 py-3 bg-red-600 text-white rounded-lg"
+            >
+              <Save className="w-4 h-4 inline" /> Enregistrer
             </button>
           </div>
+
         </form>
       </div>
     </div>

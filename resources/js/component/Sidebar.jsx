@@ -7,6 +7,8 @@ import {
   PiGearFill,
   PiCaretDown,
   PiCaretRight,
+  PiBookOpenFill,
+  PiCalendarFill,
 } from "react-icons/pi";
 
 export default function Sidebar() {
@@ -14,6 +16,7 @@ export default function Sidebar() {
   const [activeMenu, setActiveMenu] = useState(null);
   const location = useLocation();
 
+  // Définir menuItems à l'intérieur du composant pour éviter undefined
   const menuItems = [
     {
       id: "students",
@@ -31,7 +34,7 @@ export default function Sidebar() {
       icon: <PiChalkboardTeacherFill className="text-2xl" />,
       subMenus: [
         { title: "Ajouter enseignant", path: "/teachers/create" },
-        { title: "Liste enseignants", path: "/teachers/list" },
+        { title: "Liste enseignants", path: "/teachers" },
       ],
     },
     {
@@ -39,9 +42,26 @@ export default function Sidebar() {
       title: "Classes",
       icon: <PiBooksFill className="text-2xl" />,
       subMenus: [
-        { title: "Créer une classe", path: "/classes/create" },
-        { title: "Liste des classes", path: "/classes/list" },
-        { title: "Emplois du temps", path: "/classes/schedule" },
+        { title: "Créer une classe", path: "/SchoolClass/create" },
+        { title: "Liste des classes", path: "/SchoolClass/list" },
+      ],
+    },
+    {
+      id: "subjects",
+      title: "Matières",
+      icon: <PiBookOpenFill className="text-2xl" />,
+      subMenus: [
+        { title: "Ajouter matière", path: "/subjects/create" },
+        { title: "Liste matières", path: "/subjects/Liste_Subject" },
+      ],
+    },
+    {
+      id: "schedule",
+      title: "Emploi du temps",
+      icon: <PiCalendarFill className="text-2xl" />,
+      subMenus: [
+        { title: "Créer emploi du temps", path: "/schedule/create" },
+        { title: "Voir emploi du temps", path: "/schedule/list" },
       ],
     },
     {
@@ -58,8 +78,8 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`fixed top-40 left-4 z-40 transition-all duration-300 ease-in-out
-        ${open ? "w-60" : "w-16"} h-[calc(100vh-20rem)]
+      className={`fixed top-20 left-4 z-40 transition-all duration-300 ease-in-out mt-4
+        ${open ? "w-60" : "w-16"} max-h-[90vh] overflow-y-auto
         bg-gradient-to-b from-red-700 to-red-800 shadow-xl rounded-2xl flex flex-col justify-between hover:w-60`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
@@ -69,13 +89,10 @@ export default function Sidebar() {
         {menuItems.map((item) => {
           const isActive =
             location.pathname === item.path ||
-            item.subMenus?.some((sub) =>
-              location.pathname.startsWith(sub.path)
-            );
+            item.subMenus?.some((sub) => location.pathname.startsWith(sub.path));
 
           return (
             <div key={item.id} className="mb-1">
-              {/* Si menu avec sous-menu */}
               {item.subMenus ? (
                 <>
                   <button
@@ -86,39 +103,23 @@ export default function Sidebar() {
                   >
                     <div className="flex items-center gap-4">
                       <span>{item.icon}</span>
-                      {open && (
-                        <span className="font-medium">{item.title}</span>
-                      )}
+                      {open && <span className="font-medium">{item.title}</span>}
                     </div>
-
                     {open && (
-                      <span>
-                        {activeMenu === item.id ? (
-                          <PiCaretDown />
-                        ) : (
-                          <PiCaretRight />
-                        )}
-                      </span>
+                      <span>{activeMenu === item.id ? <PiCaretDown /> : <PiCaretRight />}</span>
                     )}
                   </button>
 
-                  {/* Sous-menus */}
                   {open && activeMenu === item.id && (
                     <div className="mt-1 ml-8 space-y-1 border-l-2 border-red-500 pl-2">
                       {item.subMenus.map((subMenu, index) => {
-                        const isSubActive =
-                          location.pathname === subMenu.path;
-
+                        const isSubActive = location.pathname === subMenu.path;
                         return (
                           <Link
                             key={index}
                             to={subMenu.path}
                             className={`block py-2 px-3 text-white rounded-lg transition text-sm
-                              ${
-                                isSubActive
-                                  ? "bg-red-600"
-                                  : "hover:bg-red-600"
-                              }`}
+                              ${isSubActive ? "bg-red-600" : "hover:bg-red-600"}`}
                           >
                             {subMenu.title}
                           </Link>
@@ -128,7 +129,6 @@ export default function Sidebar() {
                   )}
                 </>
               ) : (
-                /* Menu simple (ex: Paramètres) */
                 <Link
                   to={item.path}
                   className={`w-full flex items-center gap-4 text-white rounded-lg px-3 py-3 transition
@@ -136,9 +136,7 @@ export default function Sidebar() {
                     ${isActive ? "bg-red-600" : "hover:bg-red-600"}`}
                 >
                   <span>{item.icon}</span>
-                  {open && (
-                    <span className="font-medium">{item.title}</span>
-                  )}
+                  {open && <span className="font-medium">{item.title}</span>}
                 </Link>
               )}
             </div>
@@ -148,7 +146,7 @@ export default function Sidebar() {
 
       {/* FOOTER */}
       <div className="p-4 text-center text-xs text-white opacity-70">
-        {open && "© 2026 Les Savants"}
+        {open && "© 2026 ERP Scolaire"}
       </div>
     </div>
   );

@@ -1,203 +1,190 @@
-import { useState, useEffect, useContext } from "react";
-import { Edit3, Save, X } from "lucide-react";
-import { updateStudentApi } from "../../api/apistudents";
-import { AppContext } from "../../Context/AppContext";
+// resources/js/component/Create/TuitionPayment.jsx
+import { useState, useEffect } from "react";
 
-export default function EditablePayment({ student, value, updateStudentField }) {
-  const { token } = useContext(AppContext);
-  const [editing, setEditing] = useState(false);
+export default function TuitionPayment({ student, setStudent, errors }) {
+
   const [tempValue, setTempValue] = useState({
-    registration_status: value?.registration_status || "not_paid",
-    paid_months: value?.paid_months || [], // { monthId, paidDate }
+    registration_status: student.registration_status || "not_paid",
+    paid_months: student.paid_months || [],
   });
-  const [loading, setLoading] = useState(false);
 
   const registrationFee = 25000;
   const monthlyTuition = 50000;
   const currentYear = new Date().getFullYear();
 
   const months = [
-    { id: 1, name: "Janvier" }, { id: 2, name: "Février" }, { id: 3, name: "Mars" },
-    { id: 4, name: "Avril" }, { id: 5, name: "Mai" }, { id: 6, name: "Juin" },
-    { id: 7, name: "Juillet" }, { id: 8, name: "Août" }, { id: 9, name: "Septembre" },
-    { id: 10, name: "Octobre" }, { id: 11, name: "Novembre" }, { id: 12, name: "Décembre" }
+    { id: 1, name: "Janvier" },
+    { id: 2, name: "Février" },
+    { id: 3, name: "Mars" },
+    { id: 4, name: "Avril" },
+    { id: 5, name: "Mai" },
+    { id: 6, name: "Juin" },
+    { id: 7, name: "Juillet" },
+    { id: 8, name: "Août" },
+    { id: 9, name: "Septembre" },
+    { id: 10, name: "Octobre" },
+    { id: 11, name: "Novembre" },
+    { id: 12, name: "Décembre" }
   ];
 
+  // Synchronisation avec le state parent
   useEffect(() => {
     setTempValue({
-      registration_status: value?.registration_status || "not_paid",
-      paid_months: value?.paid_months || [],
+      registration_status: student.registration_status || "not_paid",
+      paid_months: student.paid_months || [],
     });
-  }, [value]);
+  }, [student.registration_status, student.paid_months]);
 
+  // Calcul des montants
   const registrationAmount =
-    tempValue.registration_status === "full" ? registrationFee :
-    tempValue.registration_status === "half" ? Math.floor(registrationFee / 2) : 0;
+    tempValue.registration_status === "full"
+      ? registrationFee
+      : tempValue.registration_status === "half"
+      ? registrationFee / 2
+      : 0;
 
   const tuitionAmount = tempValue.paid_months.length * monthlyTuition;
   const totalAmount = registrationAmount + tuitionAmount;
 
+  // Changer le statut d'inscription
   const handleRegistrationStatusChange = (status) => {
-    setTempValue(prev => ({ ...prev, registration_status: status }));
-  };
+    const updated = {
+      ...tempValue,
+      registration_status: status,
+    };
 
-  const handleMonthToggle = (monthId) => {
-    setTempValue(prev => {
-      const exists = prev.paid_months.find(m => m.monthId === monthId);
-      let updatedMonths;
-      if (exists) {
-        // retirer
-        updatedMonths = prev.paid_months.filter(m => m.monthId !== monthId);
-      } else {
-        // ajouter avec date actuelle
-        updatedMonths = [...prev.paid_months, { monthId, paidDate: new Date().toISOString().split("T")[0] }];
-      }
-      return { ...prev, paid_months: updatedMonths };
-    });
-  };
+    setTempValue(updated);
 
-  const handleMonthDateChange = (monthId, newDate) => {
-    setTempValue(prev => ({
+    setStudent(prev => ({
       ...prev,
-      paid_months: prev.paid_months.map(m =>
-        m.monthId === monthId ? { ...m, paidDate: newDate } : m
-      )
+      registration_status: updated.registration_status,
+      paid_months: updated.paid_months,
     }));
   };
 
-  const handleSave = async () => {
-    if (!student?.id) return;
-    setLoading(true);
-    try {
-      await updateStudentApi(student.id, { paymentStatus: tempValue }, token);
-      updateStudentField("paymentStatus", tempValue);
-      setEditing(false);
-    } catch (err) {
-      console.error("Erreur de mise à jour :", err);
-      alert("Impossible de sauvegarder le paiement !");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Cocher / décocher un mois
+  const handleMonthToggle = (monthId) => {
+    const exists = tempValue.paid_months.includes(monthId);
 
-  const handleCancel = () => {
-    setTempValue({
-      registration_status: value?.registration_status || "not_paid",
-      paid_months: value?.paid_months || [],
-    });
-    setEditing(false);
+    let updatedMonths;
+
+    if (exists) {
+      updatedMonths = tempValue.paid_months.filter(id => id !== monthId);
+    } else {
+      updatedMonths = [...tempValue.paid_months, monthId].sort((a, b) => a - b);
+    }
+
+    const updated = {
+      ...tempValue,
+      paid_months: updatedMonths,
+    };
+
+    setTempValue(updated);
+
+    setStudent(prev => ({
+      ...prev,
+      registration_status: updated.registration_status,
+      paid_months: updated.paid_months,
+    }));
   };
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500 mb-1 font-medium">Paiement des frais</p>
-        <div className="flex items-center gap-2">
-          {editing && (
-            <button onClick={handleCancel} className="text-gray-500 hover:text-gray-700">
-              <X className="w-5 h-5" />
-            </button>
-          )}
-          <button
-            onClick={editing ? handleSave : () => setEditing(true)}
-            disabled={loading}
-            className={`font-bold ${editing ? "text-green-600" : "text-red-600"} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            {editing ? <Save className="w-5 h-5 mr-1 inline" /> : <Edit3 className="w-5 h-5 mr-1 inline" />}
-            {editing ? (loading ? "Sauvegarde..." : "") : ""}
-          </button>
+      <h2 className="text-lg font-bold text-gray-800 mb-2">
+        Paiement des frais
+      </h2>
+
+      {/* Statut inscription */}
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">
+          Droit d'inscription
+        </p>
+
+        <div className="flex gap-2">
+          {["not_paid", "half", "full"].map(status => {
+            const isActive = tempValue.registration_status === status;
+
+            return (
+              <button
+                key={status}
+                type="button"
+                onClick={() => handleRegistrationStatusChange(status)}
+                className={`p-2 border rounded-lg text-sm transition-colors duration-200 ${
+                  isActive
+                    ? "border-red-500 bg-red-50 text-red-700 font-semibold"
+                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {status === "not_paid"
+                  ? "Non payé"
+                  : status === "half"
+                  ? "Moitié payé"
+                  : "Tout payé"}
+              </button>
+            );
+          })}
         </div>
+
+        {errors?.registration_status && (
+          <p className="text-red-500 text-sm mt-1">
+            {errors.registration_status[0]}
+          </p>
+        )}
       </div>
 
-      {editing ? (
-        <div className="space-y-4">
-          {/* Statut inscription */}
-          <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Droit d'inscription</p>
-            <div className="flex gap-2">
-              {["not_paid", "half", "full"].map(status => {
-                const isActive = tempValue.registration_status === status;
-                return (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={() => handleRegistrationStatusChange(status)}
-                    className={`p-2 border rounded-lg text-sm transition-colors duration-200 ${
-                      isActive
-                        ? "border-red-500 bg-red-50 text-red-700 font-semibold"
-                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    {status === "not_paid" ? "Non payé" : status === "half" ? "Moitié payé" : "Tout payé"}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+      {/* Mois payés */}
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">
+          Mois d'écolage payés ({currentYear})
+        </p>
 
-          {/* Mois payés */}
-          <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Mois d'écolage payés ({currentYear})</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-              {months.map(month => {
-                const paidMonth = tempValue.paid_months.find(m => m.monthId === month.id);
-                return (
-                  <div key={month.id} className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      onClick={() => handleMonthToggle(month.id)}
-                      className={`p-2 border rounded-lg text-sm transition-colors duration-200 ${
-                        paidMonth
-                          ? "border-red-500 bg-red-50 text-red-700 font-semibold"
-                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {month.name}
-                    </button>
-                    {paidMonth && (
-                      <input
-                        type="date"
-                        value={paidMonth.paidDate}
-                        onChange={(e) => handleMonthDateChange(month.id, e.target.value)}
-                        className="border rounded-md p-1 text-sm"
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          {months.map(month => {
+            const isPaid = tempValue.paid_months.includes(month.id);
 
-          {/* Résumé */}
-          <div className="bg-red-50 p-3 rounded-lg border border-red-200 shadow-sm">
-            <div className="flex justify-between text-sm text-red-700">
-              <span>Droit d'inscription :</span>
-              <span>{registrationAmount.toLocaleString()} MGA</span>
-            </div>
-            <div className="flex justify-between text-sm text-red-700">
-              <span>Écolage ({tempValue.paid_months.length} mois) :</span>
-              <span>{tuitionAmount.toLocaleString()} MGA</span>
-            </div>
-            <hr className="border-red-200 my-2"/>
-            <div className="flex justify-between text-base font-bold text-red-800">
-              <span>Total :</span>
-              <span>{totalAmount.toLocaleString()} MGA</span>
-            </div>
-          </div>
+            return (
+              <button
+                key={month.id}
+                type="button"
+                onClick={() => handleMonthToggle(month.id)}
+                className={`p-2 border rounded-lg text-sm transition-colors duration-200 ${
+                  isPaid
+                    ? "border-red-500 bg-red-50 text-red-700 font-semibold"
+                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {month.name}
+              </button>
+            );
+          })}
         </div>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-gray-700 text-sm">
-            Statut inscription : {tempValue.registration_status === "not_paid" ? "Non payé" : tempValue.registration_status === "half" ? "Moitié payé" : "Tout payé"}
+
+        {errors?.paid_months && (
+          <p className="text-red-500 text-sm mt-1">
+            {errors.paid_months[0]}
           </p>
-          <p className="text-gray-700 text-sm">
-            Mois payés : {tempValue.paid_months.length > 0 ? tempValue.paid_months.map(m => months.find(mon => mon.id === m.monthId)?.name + ` (${m.paidDate})`).join(", ") : "Aucun"}
-          </p>
-          <p className="text-gray-700 text-sm font-semibold">
-            Total : {totalAmount.toLocaleString()} MGA
-          </p>
+        )}
+      </div>
+
+      {/* Résumé */}
+      <div className="bg-red-50 p-3 rounded-lg border border-red-200 shadow-sm">
+        <div className="flex justify-between text-sm text-red-700">
+          <span>Droit d'inscription :</span>
+          <span>{registrationAmount.toLocaleString()} MGA</span>
         </div>
-      )}
+
+        <div className="flex justify-between text-sm text-red-700">
+          <span>Écolage ({tempValue.paid_months.length} mois) :</span>
+          <span>{tuitionAmount.toLocaleString()} MGA</span>
+        </div>
+
+        <hr className="border-red-200 my-2" />
+
+        <div className="flex justify-between text-base font-bold text-red-800">
+          <span>Total :</span>
+          <span>{totalAmount.toLocaleString()} MGA</span>
+        </div>
+      </div>
     </div>
   );
 }

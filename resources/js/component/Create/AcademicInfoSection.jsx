@@ -1,7 +1,7 @@
 // resources/js/component/Create/AcademicInfoSection.jsx
 import React from "react";
 
-export default function AcademicInfoSection({ student, handleChange, errors }) {
+export default function AcademicInfoSection({ student, handleChange, errors = {} }) {
   const gradeLevels = [
     "PS", "MS", "GS", "CP", "CE1", "CE2", "CM1", "CM2",
     "6e", "5e", "4e", "3e", "2nde", "1ère", "Term"
@@ -39,15 +39,19 @@ export default function AcademicInfoSection({ student, handleChange, errors }) {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Classe précédente
           </label>
-          <input
+            <select
             name="previous_class"
             value={student.previous_class || ""}
-            placeholder="Classe précédente"
             onChange={handleChange}
             className={`w-full px-3 lg:px-4 py-2 lg:py-3 border rounded-lg transition-all duration-200
               ${errors.previous_class ? "border-red-500" : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"}
             `}
-          />
+          >
+            <option value="">-- Sélectionner un niveau --</option>
+            {gradeLevels.map((level) => (
+              <option key={level} value={level}>{level}</option>
+            ))}
+          </select>
           {errors.previous_class && (
             <p className="text-red-500 text-sm mt-1">{errors.previous_class[0]}</p>
           )}
@@ -59,11 +63,11 @@ export default function AcademicInfoSection({ student, handleChange, errors }) {
             Niveau actuel <span className="text-red-500">*</span>
           </label>
           <select
-            name="gradeLevel"
-            value={student.gradeLevel || ""}
+            name="grade_level"
+            value={student.grade_level || ""}
             onChange={handleChange}
             className={`w-full px-3 lg:px-4 py-2 lg:py-3 border rounded-lg transition-all duration-200
-              ${errors.gradeLevel ? "border-red-500" : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"}
+              ${errors.grade_level ? "border-red-500" : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"}
             `}
           >
             <option value="">-- Sélectionner un niveau --</option>
@@ -71,8 +75,8 @@ export default function AcademicInfoSection({ student, handleChange, errors }) {
               <option key={level} value={level}>{level}</option>
             ))}
           </select>
-          {errors.gradeLevel && (
-            <p className="text-red-500 text-sm mt-1">{errors.gradeLevel[0]}</p>
+          {errors.grade_level && (
+            <p className="text-red-500 text-sm mt-1">{errors.grade_level[0]}</p>
           )}
         </div>
 

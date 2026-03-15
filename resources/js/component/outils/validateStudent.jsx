@@ -1,71 +1,90 @@
-// resources/js/component/outils/validateStudent.js
-export function validateStudent(student) {
+export const validateStudent = (student) => {
   const errors = {};
 
-  // --- Informations personnelles ---
-  if (!student.firstName || student.firstName.trim() === "") {
-    errors.firstName = ["Prénom requis"];
+  /* ================================
+     🔹 VALIDATION INFORMATIONS ÉLÈVE
+  ================================== */
+
+  if (!student.first_name?.trim()) {
+    errors.first_name = ["Le prénom est requis."];
   }
 
-  if (!student.lastName || student.lastName.trim() === "") {
-    errors.lastName = ["Nom requis"];
+  if (!student.last_name?.trim()) {
+    errors.last_name = ["Le nom est requis."];
   }
 
-  if (!student.birthDate || student.birthDate.trim() === "") {
-    errors.birthDate = ["Date de naissance requise"];
+  if (!student.birth_date) {
+    errors.birth_date = ["La date de naissance est requise."];
   }
 
-  if (!student.gender || !["male", "female"].includes(student.gender)) {
-    errors.gender = ["Genre requis"];
+  if (!student.address?.trim()) {
+    errors.address = ["L'adresse est requise."];
   }
 
-  if (student.postalCode && !/^\d{3,10}$/.test(student.postalCode)) {
-    errors.postalCode = ["Code postal invalide"];
+  if (!student.city?.trim()) {
+    errors.city = ["La ville est requise."];
   }
 
-  if (!student.city || student.city.trim() === "") {
-    errors.city = ["Ville requise"];
+  if (!student.postal_code?.trim()) {
+    errors.postal_code = ["Le code postal est requis."];
   }
 
-  if (!student.address || student.address.trim() === "") {
-    errors.address = ["Adresse requise"];
+  if (!student.phone?.trim()) {
+    errors.phone = ["Le numéro de téléphone est requis."];
   }
 
-  if (!student.phone || !/^\+?\d{8,15}$/.test(student.phone)) {
-    errors.phone = ["Numéro de téléphone invalide"];
+  if (!student.grade_level?.trim()) {
+    errors.grade_level = ["Le niveau scolaire est requis."];
   }
 
-  // --- Académique ---
-  if (!student.gradeLevel || student.gradeLevel.trim() === "") {
-    errors.gradeLevel = ["Niveau requis"];
-  }
+  /* ================================
+     🔹 VALIDATION GUARDIANS
+  ================================== */
 
+  const guardianData = student.guardians_data || {};
+ // console.log("Validating guardians data:", guardianData);
 
+  const guardianIds = [
+    ...new Set(
+      Object.keys(guardianData)
+        .map(key => key.match(/^guardian_(\d+)_/))
+        .filter(Boolean)
+        .map(match => match[1])
+    )
+  ];
 
-  // --- Paiement ---
-  if (!student.tuitionPayment || typeof student.tuitionPayment !== "object") {
-    errors.tuitionPayment = ["Statut de paiement requis"];
-  } else {
-    const { registration_status, paid_months } = student.tuitionPayment;
+  guardianIds.forEach(id => {
+    const name = guardianData[`guardian_${id}_name`] || "";
+    const relationship = guardianData[`guardian_${id}_relationship`] || "";
+    const phone = guardianData[`guardian_${id}_phone`] || "";
+    const email = guardianData[`guardian_${id}_email`] || "";
 
-    if (!["not_paid", "half", "full"].includes(registration_status)) {
-      errors.tuitionPayment = ["Statut de paiement invalide"];
+    // 🚨 IMPORTANT :
+    // Si le guardian existe (donc id détecté),
+    // alors il DOIT être rempli correctement
+
+    if (!name.trim()) {
+      errors[`guardian_${id}_name`] = [
+        "Le nom du responsable est requis."
+      ];
     }
-  }
 
-  // --- Image étudiant (optionnel) ---
-  if (student.studentImage) {
-    const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
-    if (!allowedTypes.includes(student.studentImage.type)) {
-      errors.studentImage = ["Format d'image invalide (jpg, jpeg, png)"];
+    if (!relationship.trim()) {
+      errors[`guardian_${id}_relationship`] = [
+        "Le lien de parenté est requis."
+      ];
     }
 
-    const maxSize = 2 * 1024 * 1024; // 2 Mo
-    if (student.studentImage.size > maxSize) {
-      errors.studentImage = ["Taille de l'image trop grande (max 2Mo)"];
+    if (!phone.trim()) {
+      errors[`guardian_${id}_phone`] = [
+        "Le téléphone est requis."
+      ];
     }
-  }
 
-  console.log("Validation errors:", errors);
+    // Email facultatif (si tu veux le rendre obligatoire dis-le)
+  });
+
+  //console.log("Validation errors:", errors);
+
   return errors;
-}
+};

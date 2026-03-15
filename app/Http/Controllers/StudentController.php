@@ -62,9 +62,9 @@ class StudentController extends Controller implements HasMiddleware
                 'academic_year' => 'nullable|integer|min:2020|max:2030',
                 'grade_level' => 'nullable|in:PS,MS,GS,CP,CE1,CE2,CM1,CM2,6e,5e,4e,3e,2nde,1ère,Term',
 
-                'tuition_payment.registration_status' => 'required|in:half,full,not_paid',
-                'tuition_payment.paid_months' => 'nullable|array',
-                'tuition_payment.paid_months.*' => 'integer',
+                'registration_status' => 'required|in:not_paid,half,full',
+                'paid_months' => 'array',
+                'paid_months.*' => 'integer|min:1|max:12',
             ]);
 
         /////////////////////////
@@ -118,14 +118,15 @@ class StudentController extends Controller implements HasMiddleware
                     'student_image' => $path,
 
                     // Documents
-                    'birth_certificate' => $request->dossier['birthCertificate'] ?? false,
-                    'medical_certificate' => $request->dossier['medicalCertificate'] ?? false,
-                    'report_card' => $request->dossier['reportCard'] ?? false,
-                    'id_card' => $request->dossier['idCard'] ?? false,
+                    'birth_certificate' => $request->boolean('birth_certificate'),
+                    'medical_certificate' => $request->boolean('medical_certificate'),
+                    'report_card' => $request->boolean('report_card'),
+                    'id_card' => $request->boolean('id_card'),
+
 
                     // Paiement
-                    'tuition_payment' => $request->tuition_payment['registration_status'],
-                    'registration_months' => $request->tuition_payment['registration_months'] ?? [],
+                    'tuition_payment' => $request->registration_status ,
+                    'registration_months' => $request->paid_months ?? [],
                 ]);
                                     // Parents
                     if ($request->has('parents') && is_array($request->parents)) {

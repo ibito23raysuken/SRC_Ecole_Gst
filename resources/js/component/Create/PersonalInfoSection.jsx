@@ -3,18 +3,21 @@ import React, { useState } from "react";
 export default function PersonalInfoSection({ student, handleChange, errors = {} }) {
   const [preview, setPreview] = useState(null);
 
+  // Gérer l'aperçu de l'image
   const handleImage = (e) => {
-    handleChange(e);
+    handleChange(e); // met à jour le state parent
     const file = e.target.files && e.target.files[0];
     if (file) setPreview(URL.createObjectURL(file));
     else setPreview(null);
   };
 
+  // Affichage d'une erreur pour un champ
   const renderError = (fieldName) =>
     errors[fieldName] ? (
       <p className="mt-1 text-sm text-red-600">{errors[fieldName][0]}</p>
     ) : null;
 
+  // Classe CSS pour input (ajoute la bordure rouge si erreur)
   const inputClassName = (fieldName) =>
     `w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 ${
       errors[fieldName] ? "border-red-500" : "border-gray-300"
@@ -61,13 +64,13 @@ export default function PersonalInfoSection({ student, handleChange, errors = {}
             </div>
             <input
               type="file"
-              name="studentImage"
+              name="student_image"
               accept="image/*"
               className="hidden"
               onChange={handleImage}
             />
           </label>
-          {renderError("studentImage")}
+          {renderError("student_image")}
         </div>
 
         {/* Informations */}
@@ -77,13 +80,13 @@ export default function PersonalInfoSection({ student, handleChange, errors = {}
               Prénom *
             </label>
             <input
-              name="firstName"
-              value={student.firstName}
+              name="first_name"
+              value={student.first_name || ""}
               placeholder="Entrez le prénom"
               onChange={handleChange}
-              className={inputClassName("firstName")}
+              className={inputClassName("first_name")}
             />
-            {renderError("firstName")}
+            {renderError("first_name")}
           </div>
 
           <div>
@@ -91,13 +94,13 @@ export default function PersonalInfoSection({ student, handleChange, errors = {}
               Nom *
             </label>
             <input
-              name="lastName"
-              value={student.lastName}
+              name="last_name"
+              value={student.last_name || ""}
               placeholder="Entrez le nom"
               onChange={handleChange}
-              className={inputClassName("lastName")}
+              className={inputClassName("last_name")}
             />
-            {renderError("lastName")}
+            {renderError("last_name")}
           </div>
 
           <div>
@@ -106,12 +109,12 @@ export default function PersonalInfoSection({ student, handleChange, errors = {}
             </label>
             <input
               type="date"
-              name="birthDate"
-              value={student.birthDate}
+              name="birth_date"
+              value={student.birth_date || ""}
               onChange={handleChange}
-              className={inputClassName("birthDate")}
+              className={inputClassName("birth_date")}
             />
-            {renderError("birthDate")}
+            {renderError("birth_date")}
           </div>
 
           <div>
@@ -119,13 +122,13 @@ export default function PersonalInfoSection({ student, handleChange, errors = {}
               Lieu de naissance
             </label>
             <input
-              name="birthPlace"
-              value={student.birthPlace}
+              name="birth_place"
+              value={student.birth_place || ""}
               placeholder="Ville / Pays"
               onChange={handleChange}
-              className={inputClassName("birthPlace")}
+              className={inputClassName("birth_place")}
             />
-            {renderError("birthPlace")}
+            {renderError("birth_place")}
           </div>
 
           <div>
@@ -134,7 +137,7 @@ export default function PersonalInfoSection({ student, handleChange, errors = {}
             </label>
             <input
               name="nationality"
-              value={student.nationality}
+              value={student.nationality || ""}
               placeholder="Nationalité"
               onChange={handleChange}
               className={inputClassName("nationality")}

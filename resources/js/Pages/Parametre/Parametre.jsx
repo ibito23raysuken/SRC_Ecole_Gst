@@ -1,55 +1,45 @@
 import { useState, useEffect, useContext } from "react";
 import { AppContext } from "../../Context/AppContext";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { toast } from "react-hot-toast";
 
 export default function SettingsPage() {
   const { token } = useContext(AppContext);
 
   const [settings, setSettings] = useState({
-    schoolName: "",
-    schoolEmail: "",
-    schoolPhone: "",
-    schoolAddress: "",
-    academicYear: "",
+    school_name: "",
+    school_email: "",
+    school_phone: "",
+    school_address: "",
+    academic_year: new Date(),
   });
 
   const [loading, setLoading] = useState(true);
 
-  // Génération dynamique années scolaires
-  const generateAcademicYears = () => {
-    const currentYear = new Date().getFullYear();
-    const years = [];
-
-    for (let i = -2; i <= 3; i++) {
-      const start = currentYear + i;
-      const end = start + 1;
-      years.push(`${start} - ${end}`);
-    }
-
-    return years;
-  };
-
-  // Charger paramètres
+  // Charger les paramètres
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/settings", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await fetch("http://localhost:8000/api/settings", {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        const data = await response.json();
+        const data = await res.json();
 
         setSettings({
-          schoolName: data.schoolName || "",
-          schoolEmail: data.schoolEmail || "",
-          schoolPhone: data.schoolPhone || "",
-          schoolAddress: data.schoolAddress || "",
-          academicYear: data.academicYear || "",
+          school_name: data.school_name || "",
+          school_email: data.school_email || "",
+          school_phone: data.school_phone || "",
+          school_address: data.school_address || "",
+          academic_year: data.academic_year
+            ? new Date(data.academic_year.split(" - ")[0] + "-01-01")
+            : new Date(),
         });
 
-      } catch (error) {
-        console.error("Erreur chargement settings:", error);
+      } catch (err) {
+        console.error(err);
+        toast.error("Erreur chargement des paramètres ❌");
       } finally {
         setLoading(false);
       }
@@ -60,38 +50,51 @@ export default function SettingsPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setSettings((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setSettings((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleYearChange = (date) => {
+    setSettings((prev) => ({ ...prev, academic_year: date }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:8000/api/settings", {
+      const body = {
+        school_name: settings.school_name,
+        school_email: settings.school_email,
+        school_phone: settings.school_phone,
+        school_address: settings.school_address,
+        academic_year: `${settings.academic_year.getFullYear()} - ${
+          settings.academic_year.getFullYear() + 1
+        }`,
+      };
+
+      const res = await fetch("http://localhost:8000/api/settings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(body),
       });
 
-      const data = await response.json();
-      alert(data.message);
-    } catch (error) {
-      alert("Erreur lors de la sauvegarde");
+      const data = await res.json();
+
+      toast.success(data.message || "Paramètres sauvegardés avec succès ✅");
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de la sauvegarde ❌");
     }
   };
 
-  if (loading) {
-    return <p className="text-center mt-10">Chargement...</p>;
-  }
+  if (loading) return <p className="text-center mt-10">Chargement...</p>;
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
+
       <h1 className="text-3xl font-bold text-red-700">
         Paramètres de l'application
       </h1>
@@ -99,29 +102,52 @@ export default function SettingsPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
 
         <Card title="Informations de l'école">
-          <Input label="Nom de l'école" name="schoolName" value={settings.schoolName} onChange={handleChange} />
-          <Input label="Email" name="schoolEmail" value={settings.schoolEmail} onChange={handleChange} />
-          <Input label="Téléphone" name="schoolPhone" value={settings.schoolPhone} onChange={handleChange} />
-          <Input label="Adresse" name="schoolAddress" value={settings.schoolAddress} onChange={handleChange} />
+
+          <Input
+            label="Nom de l'école"
+            name="school_name"
+            value={settings.school_name}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Email"
+            name="school_email"
+            value={settings.school_email}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Téléphone"
+            name="school_phone"
+            value={settings.school_phone}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Adresse"
+            name="school_address"
+            value={settings.school_address}
+            onChange={handleChange}
+          />
+
         </Card>
 
         <Card title="Année scolaire">
+
           <div className="flex flex-col gap-1">
             <label className="text-gray-700">Année en cours</label>
-            <select
-              name="academicYear"
-              value={settings.academicYear}
-              onChange={handleChange}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
-            >
-              <option value="">Sélectionner une année</option>
-              {generateAcademicYears().map((year, index) => (
-                <option key={index} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+
+            <DatePicker
+              selected={settings.academic_year}
+              onChange={handleYearChange}
+              showYearPicker
+              dateFormat="yyyy"
+              className="w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:ring-2 focus:ring-red-400"
+            />
+
           </div>
+
         </Card>
 
         <div className="text-right">
