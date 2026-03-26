@@ -57,11 +57,11 @@ export default function Sidebar() {
     },
     {
       id: "schedule",
-      title: "Emploi du temps",
+      title: "Outils",
       icon: <PiCalendarFill className="text-2xl" />,
       subMenus: [
-        { title: "Créer emploi du temps", path: "/schedule/create" },
-        { title: "Voir emploi du temps", path: "/schedule/list" },
+        { title: "Configurer emploi du temps", path: "/schedule" },
+        { title: "Insertion note", path: "/Note" },
       ],
     },
     {

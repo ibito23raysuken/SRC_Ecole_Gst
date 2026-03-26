@@ -4,21 +4,41 @@ import { updateStudentApi } from "../../../api/apistudents";
 import { AppContext } from "../../../Context/AppContext";
 import { toast } from "react-hot-toast";
 
-export default function EditableGender({ value, student, updateStudentField }) {
-  const [editing, setEditing] = useState(false);
-  const [tempValue, setTempValue] = useState(value || "");
-  const [loading, setLoading] = useState(false);
+// options
+const RELATIONSHIPS = [
+  { value: "father", label: "Père" },
+  { value: "mother", label: "Mère" },
+  { value: "guardian", label: "Tuteur" },
+  { value: "other", label: "Autre" }
+];
+
+export default function EditableRelationship({
+  value,
+  student,
+  updateStudentField
+}) {
   const { token } = useContext(AppContext);
 
+  const [editing, setEditing] = useState(false);
+  const [tempValue, setTempValue] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // sync
   useEffect(() => {
     setTempValue(value || "");
   }, [value]);
 
+  // label affiché
+  const getLabel = (val) => {
+    const found = RELATIONSHIPS.find(r => r.value === val);
+    return found ? found.label : "Non renseigné";
+  };
+
+  // SAVE
   const handleSave = async () => {
     if (!student?.id) return;
 
-    // 🚫 pas de modification
-    if (tempValue === (value || "")) {
+    if (tempValue === value) {
       setEditing(false);
       return;
     }
@@ -28,15 +48,13 @@ export default function EditableGender({ value, student, updateStudentField }) {
     try {
       const res = await updateStudentApi(
         student.id,
-        { gender: tempValue },
+        { relationship: tempValue },
         token
       );
 
-      // ✅ IMPORTANT : utiliser la réponse backend
-      updateStudentField(res.student, "Genre mis à jour ✅");
+      updateStudentField(res.student, "Relation mise à jour ✅");
 
       setEditing(false);
-
     } catch (err) {
       console.error(err);
       toast.error("Erreur lors de la mise à jour ❌");
@@ -55,24 +73,25 @@ export default function EditableGender({ value, student, updateStudentField }) {
 
       {/* LEFT */}
       <div>
-        <p className="text-sm text-gray-500 mb-1">Genre</p>
+        <p className="text-sm text-gray-500 mb-1">Lien de parenté</p>
 
         {editing ? (
           <select
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
             disabled={loading}
-            className="border rounded-md p-1 disabled:opacity-50"
+            className="border rounded-md p-1"
           >
-            <option value="">-- Sélectionner --</option>
-            <option value="male">Masculin</option>
-            <option value="female">Féminin</option>
+            <option value="">Sélectionnez</option>
+            {RELATIONSHIPS.map(r => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
           </select>
         ) : (
           <p className="font-medium text-gray-800">
-            {value === "male" && "Masculin"}
-            {value === "female" && "Féminin"}
-            {!value && "Non renseigné"}
+            {getLabel(value)}
           </p>
         )}
       </div>
@@ -93,14 +112,14 @@ export default function EditableGender({ value, student, updateStudentField }) {
         <button
           onClick={editing ? handleSave : () => setEditing(true)}
           disabled={loading}
-          className={`font-bold ${
+          className={`font-bold flex items-center ${
             editing ? "text-green-600" : "text-red-600"
           } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {editing ? (
             <>
-              <Save className="w-5 h-5" />
-              {loading && " ..."}
+              <Save className="w-5 h-5 mr-1" />
+              {loading && "Sauvegarde..."}
             </>
           ) : (
             <Edit3 className="w-5 h-5" />

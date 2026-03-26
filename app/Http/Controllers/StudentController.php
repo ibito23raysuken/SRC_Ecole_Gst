@@ -312,7 +312,6 @@ public function update(Request $request, Student $student){
     // 10. Retour JSON
     return response()->json([
         'message' => 'Student updated successfully',
-        'student' => $student->fresh(),
         'guardians' => $student->guardians()->get(),
         'modifiedSections' => $modifiedSections
     ], 200);

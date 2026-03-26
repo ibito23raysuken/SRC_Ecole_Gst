@@ -1,63 +1,89 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Edit3, Save } from "lucide-react";
 import { updateStudentApi } from "../../../api/apistudents";
 import { AppContext } from "../../../Context/AppContext";
-import {  useContext } from 'react';
-export default function YearSelectorEditable({ value,student }) {
-    const [isEditing, setIsEditing] = useState(false);
-    const { token } = useContext(AppContext);
+import { toast } from "react-hot-toast";
 
-    const currentYear = new Date().getFullYear();
+export default function YearSelectorEditable({ student, updateStudentField }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const { token } = useContext(AppContext);
 
-    // Génère une liste d'années (ex : 2015 → 2035)
-    const years = Array.from({ length: 20 }, (_, i) => currentYear - 10 + i);
+  const currentYear = new Date().getFullYear();
 
-    const [academicYear, setAcademicYear] = useState(student.academic_year);
+  // Liste années (ex: 2015 → 2035)
+  const years = Array.from({ length: 20 }, (_, i) => currentYear - 10 + i);
 
- const handleSave = async () => {
-    await updateStudentApi(student.id, {
-        academic_year: academicYear
-    }, token);
+  const [academicYear, setAcademicYear] = useState(student.academic_year);
 
-    setIsEditing(false);
-};
+  // ===============================
+  // SAVE
+  // ===============================
+  const handleSave = async () => {
+    try {
+      const res = await updateStudentApi(
+        student.id,
+        { academic_year: academicYear },
+        token
+      );
 
-    return (
-        <div className="mt-1">
-            {isEditing ? (
-                <div className="flex gap-2 items-center">
-                    <select
-                        className="border p-2 rounded"
-                        value={academicYear}
-                        onChange={(e) => setAcademicYear(parseInt(e.target.value))}
-                    >
-                        {years.map((year) => (
-                            <option key={year} value={year}>
-                                {year}
-                            </option>
-                        ))}
-                    </select>
+      // 🔥 Met à jour le parent + déclenche toast
+      updateStudentField(res, "Année scolaire mise à jour ✅");
 
-                    <button onClick={handleSave} className="px-3 py-1 bg-red-600 text-white rounded-md">
-                    <Save className="w-4 h-4 inline-block mr-1" />
-                    Sauvegarder
-                    </button>
+      setIsEditing(false);
 
-                    <button
-                        onClick={() => setIsEditing(false)}
-                        className="bg-gray-500 text-white px-3 py-1 rounded"
-                    >
-                        Annuler
-                    </button>
-                </div>
-            ) : (
-                <p
-                    className="text-gray-600 cursor-pointer hover:text-red-600 "
-                    onClick={() => setIsEditing(true)}
-                >
-                    Année d’inscription : <b>{academicYear}</b>
-                </p>
-            )}
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Erreur lors de la modification ❌", {
+        position: "top-right",
+      });
+    }
+  };
+
+  return (
+    <div className="mt-1">
+      {isEditing ? (
+        <div className="flex gap-2 items-center">
+
+          <select
+            className="border p-2 rounded"
+            value={academicYear}
+            onChange={(e) => setAcademicYear(parseInt(e.target.value))}
+          >
+            {years.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={handleSave}
+            className="px-3 py-1 bg-red-600 text-white rounded-md"
+          >
+            <Save className="w-4 h-4 inline-block mr-1" />
+            Sauvegarder
+          </button>
+
+          <button
+            onClick={() => {
+              setAcademicYear(student.academic_year); // reset
+              setIsEditing(false);
+            }}
+            className="bg-gray-500 text-white px-3 py-1 rounded"
+          >
+            Annuler
+          </button>
+
         </div>
-    );
+      ) : (
+        <p
+          className="text-gray-600 cursor-pointer hover:text-red-600"
+          onClick={() => setIsEditing(true)}
+        >
+          Année d’inscription : <b>{academicYear}</b>
+        </p>
+      )}
+    </div>
+  );
 }

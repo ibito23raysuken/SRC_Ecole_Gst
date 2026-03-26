@@ -13,7 +13,7 @@ export default function GuardianSection({
   // ===============================
   const RELATIONSHIPS = [
     { value: "father", label: "Père" },
-    { value: "mother", label: "Mère Tuteur légal" },
+    { value: "mother", label: "Mère" },
     { value: "guardian", label: "Tuteur légal" },
   ];
 
@@ -44,17 +44,16 @@ export default function GuardianSection({
     setGuardians([...guardians, { id: newId }]);
 
     // Initialiser champs contrôlés
-    ["name", "relationship", "phone", "email", "profession"].forEach(
-      (field) => {
+    ["name", "relationship", "phone", "email", "profession", "country_code"]
+      .forEach((field) => {
         handleChange({
           target: {
             name: `guardian_${newId}_${field}`,
-            value: "",
+            value: field === "country_code" ? "+261" : "",
             type: "text"
           }
         });
-      }
-    );
+      });
   };
 
   // ===============================
@@ -166,16 +165,37 @@ export default function GuardianSection({
               {/* Téléphone */}
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Téléphone
+                  Téléphone *
                 </label>
-                <input
-                  name={`guardian_${id}_phone`}
-                  value={student.guardians_data?.[`guardian_${id}_phone`] ?? ""}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-lg ${
-                    getError("phone") ? "border-red-500" : "border-gray-300"
-                  }`}
-                />
+
+                <div className="flex gap-2">
+                  <select
+                    name={`guardian_${id}_country_code`}
+                    value={
+                      student.guardians_data?.[`guardian_${id}_country_code`] ?? "+261"
+                    }
+                    onChange={handleChange}
+                    className="px-2 py-2 border rounded-lg w-24"
+                  >
+                    <option value="+261">+261 (MG)</option>
+                    <option value="+33">+33 (FR)</option>
+                    <option value="+1">+1 (US)</option>
+                  </select>
+
+                  <input
+                    type="tel"
+                    name={`guardian_${id}_phone`}
+                    value={
+                      student.guardians_data?.[`guardian_${id}_phone`] ?? ""
+                    }
+                    placeholder="XX-XX-XXX-XX"
+                    onChange={handleChange}
+                    className={`flex-1 px-3 py-2 border rounded-lg ${
+                      getError("phone") ? "border-red-500" : "border-gray-300"
+                    }`}
+                  />
+                </div>
+
                 {getError("phone") && (
                   <p className="text-red-500 text-sm mt-1">
                     {getError("phone")[0]}
@@ -216,6 +236,7 @@ export default function GuardianSection({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
+
             </div>
           </div>
         );

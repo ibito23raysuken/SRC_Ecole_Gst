@@ -18,6 +18,8 @@ import CreateSchoolClass from "./Pages/SchoolClass/CreateSchoolClass";
 import Liste_SchoolClass from "./Pages/SchoolClass/Liste_SchoolClass";
 import CreateSubject from "./Pages/Subject/CreateSubject";
 import Liste_Subject from "./Pages/Subject/Liste_Subject";
+import Schedule from "./Pages/Schedule/CreateSchedule";
+import Note from "./Pages/Notes/CreateNotes";
 export default function App() {
     const { user } = useContext(AppContext);
     const isGuest = Object.keys(user || {}).length === 0;
@@ -59,7 +61,8 @@ export default function App() {
                     <Route path="/subjects/Liste_Subject" element={isGuest ? <Home /> : <Liste_Subject />} />
 
                     <Route path="/parametre" element={isGuest ? <Home /> : <Parametre />} />
-
+                    <Route path="/schedule" element={<Schedule />} />
+                    <Route path="/Note" element={<Note />} />
                 </Route>
             </Routes>
         </BrowserRouter>

@@ -1,7 +1,8 @@
-import { useState, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../../Context/AppContext";
 import { createSubjectApi } from "../../api/apiSubjects";
+import { getAllSchoolClassesApi } from "../../api/apiSchoolClasses";
 import { toast } from "react-hot-toast";
 import { Save, X } from "lucide-react";
 
@@ -11,10 +12,13 @@ export default function CreateSubject() {
   const { token } = useContext(AppContext);
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [classes, setClasses] = useState([]);
+
   const [subject, setSubject] = useState({
     name: "",
-    code: "",
-    coefficient: 1
+    coefficient: 1,
+    class_id: ""
   });
 
   const inputClassName = (field) =>
@@ -27,28 +31,87 @@ export default function CreateSubject() {
       <p className="text-red-600 text-sm">{errors[field][0]}</p>
     ) : null;
 
-  const handleChange = (e) => {
+  // 🔥 Charger les classes
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        setLoading(true);
 
+        if (!token) throw new Error("Token manquant !");
+
+        const data = await getAllSchoolClassesApi(token);
+
+        // compatible API Laravel ou autre
+        setClasses(data.data || data);
+
+        setErrors({});
+
+      } catch (err) {
+        console.error("Erreur de chargement :", err);
+
+        setErrors({
+          class_id: [
+            err.response?.data?.message ||
+            err.message ||
+            "Erreur lors du chargement des classes"
+          ]
+        });
+
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClasses();
+  }, [token]);
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setSubject({
-      ...subject,
-      [name]: name === "coefficient" ? Number(value) : value
-    });
+    setSubject((prev) => ({
+      ...prev,
+      [name]: name === "coefficient"
+        ? (value === "" ? "" : Number(value))
+        : value
+    }));
 
+    setErrors((prev) => ({
+      ...prev,
+      [name]: null
+    }));
   };
 
   const handleSubmit = async (e) => {
-
     e.preventDefault();
+
+    if (!subject.name.trim()) {
+      setErrors({ name: ["Le nom est obligatoire"] });
+      return;
+    }
+
+    if (!subject.class_id) {
+      setErrors({ class_id: ["La classe est obligatoire"] });
+      return;
+    }
+
+    if (classes.length === 0) {
+      toast.error("Aucune classe disponible ❌");
+      return;
+    }
+
+    setLoading(true);
 
     try {
 
-      await createSubjectApi(subject, token);
+      await createSubjectApi({
+        name: subject.name,
+        coefficient: subject.coefficient,
+        class_id: subject.class_id
+      }, token);
 
       toast.success("Matière créée avec succès ✅");
 
-      navigate("/subjects");
+      navigate("/subjects/Liste_Subject");
 
     } catch (error) {
 
@@ -58,8 +121,9 @@ export default function CreateSubject() {
 
       toast.error("Erreur lors de la création ❌");
 
+    } finally {
+      setLoading(false);
     }
-
   };
 
   return (
@@ -73,6 +137,7 @@ export default function CreateSubject() {
 
         <form onSubmit={handleSubmit} className="grid gap-6">
 
+          {/* NOM */}
           <div>
             <label className="block mb-1 font-medium">
               Nom de la matière *
@@ -83,27 +148,12 @@ export default function CreateSubject() {
               value={subject.name}
               onChange={handleChange}
               className={inputClassName("name")}
+              required
             />
-
             {renderError("name")}
           </div>
 
-          <div>
-            <label className="block mb-1 font-medium">
-              Code matière
-            </label>
-
-            <input
-              name="code"
-              value={subject.code}
-              onChange={handleChange}
-              className={inputClassName("code")}
-              placeholder="ex: MATH"
-            />
-
-            {renderError("code")}
-          </div>
-
+          {/* COEFFICIENT */}
           <div>
             <label className="block mb-1 font-medium">
               Coefficient
@@ -118,10 +168,41 @@ export default function CreateSubject() {
               min="1"
               max="10"
             />
-
             {renderError("coefficient")}
           </div>
 
+          {/* CLASSE */}
+          <div>
+            <label className="block mb-1 font-medium">
+              Classe *
+            </label>
+
+            <select
+              name="class_id"
+              value={subject.class_id}
+              onChange={handleChange}
+              className={inputClassName("class_id")}
+              disabled={loading}
+            >
+              <option value="">
+                {loading ? "Chargement..." : "-- Choisir une classe --"}
+              </option>
+
+              {classes.length === 0 && (
+                <option disabled>Aucune classe disponible</option>
+              )}
+
+              {classes.map((classe) => (
+                <option key={classe.id} value={classe.id}>
+                  {classe.name}
+                </option>
+              ))}
+            </select>
+
+            {renderError("class_id")}
+          </div>
+
+          {/* BOUTONS */}
           <div className="flex justify-end gap-4 pt-4 border-t">
 
             <button
@@ -134,9 +215,12 @@ export default function CreateSubject() {
 
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg flex items-center gap-2 hover:bg-blue-600"
+              disabled={loading}
+              className={`px-6 py-2 text-white rounded-lg flex items-center gap-2
+                ${loading ? "bg-blue-300" : "bg-blue-500 hover:bg-blue-600"}`}
             >
-              <Save size={18}/> Enregistrer
+              <Save size={18}/>
+              {loading ? "Enregistrement..." : "Enregistrer"}
             </button>
 
           </div>

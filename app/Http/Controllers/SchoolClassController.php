@@ -32,7 +32,8 @@ class SchoolClassController extends Controller
 
             if ($validator->fails()) {
                 return response()->json([
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
+                    'academic_year_id' => $request->academic_year_id
                 ], 422);
             }
 

@@ -33,4 +33,8 @@ class SchoolClass extends Model
     {
         return $this->belongsTo(AcademicYear::class);
     }
+    public function subjects()
+    {
+        return $this->hasMany(Subject::class, 'class_id');
+    }
 }
