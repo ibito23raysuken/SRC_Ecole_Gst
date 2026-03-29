@@ -69,3 +69,16 @@ export async function deleteSchoolClassApi(id, token) {
     }
   });
 }
+
+// ✅ Fonction pour récupérer une classe libre selon le niveau
+export async function getFreeClassByLevelApi(level, token) {
+    console.log(level);
+  if (!level) return null;
+
+  const response = await api.get(`/school-classes/free?level=${level}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  // Retourne la première classe libre ou null
+  return response.data?.[0] || null;
+}

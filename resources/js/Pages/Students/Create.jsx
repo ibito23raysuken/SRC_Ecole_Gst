@@ -190,6 +190,7 @@ const handleSubmit = async (e) => {
           <AcademicInfoSection
             student={student}
             handleChange={handleChange}
+            setStudent={setStudent}  // ✅ IMPORTANT
             errors={errors}
           />
 
