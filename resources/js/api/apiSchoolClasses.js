@@ -72,13 +72,18 @@ export async function deleteSchoolClassApi(id, token) {
 
 // ✅ Fonction pour récupérer une classe libre selon le niveau
 export async function getFreeClassByLevelApi(level, token) {
-    console.log(level);
   if (!level) return null;
 
-  const response = await api.get(`/school-classes/free?level=${level}`, {
-    headers: { Authorization: `Bearer ${token}` }
+  const response = await api.get(`/school-classes/free`, {
+    params: { level },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json"
+    }
   });
 
-  // Retourne la première classe libre ou null
-  return response.data?.[0] || null;
+  console.log("getFreeClassByLevelApi called with level:", response.data);
+
+  // ⚠️ ton backend retourne { classes: [...] }
+  return response.data?.classes?.[0] || null;
 }

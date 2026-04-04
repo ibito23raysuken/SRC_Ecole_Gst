@@ -24,7 +24,7 @@ export default function AcademicInfoSection({ student, setStudent }) {
 
       try {
         const freeClass = await getFreeClassByLevelApi(nextLevel, token);
-
+          console.log("AcademicInfoSection rendered with student:", freeClass);
         setStudent(prev => ({
           ...prev,
           grade_level: nextLevel,                     // automatiquement rempli
@@ -38,7 +38,7 @@ export default function AcademicInfoSection({ student, setStudent }) {
 
     fetchFreeClass();
   }, [student.previous_class]);
-  console.log(freeClass);
+
   return (
     <div className="bg-white p-6 rounded-xl shadow border">
       <h2 className="text-xl font-bold mb-4">Informations académiques</h2>

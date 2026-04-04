@@ -317,11 +317,6 @@ public function update(Request $request, Student $student){
     ], 200);
 }
 
-
-
-
-
-
     /**
      * Remove the specified resource from storage.
      */

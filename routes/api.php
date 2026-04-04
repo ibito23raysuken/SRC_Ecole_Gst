@@ -18,6 +18,10 @@ Route::get('/user', function (Request $request) {
 //     return "API";
 // });
 
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/school-classes/free', [SchoolClassController::class, 'getFreeClasses']);
+});
+
 Route::apiResource('students',StudentController::class)->middleware('auth:sanctum');
 Route::apiResource('teachers', TeacherController::class)->middleware('auth:sanctum');
 Route::apiResource('school-classes', SchoolClassController::class)->middleware('auth:sanctum');

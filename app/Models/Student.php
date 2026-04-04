@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Student extends Model
 {
-    /** @use HasFactory<\Database\Factories\StudentFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -24,7 +23,6 @@ class Student extends Model
         'previous_school',
         'previous_class',
         'academic_year',
-        'grade_level',
         'special_needs',
         'birth_certificate',
         'medical_certificate',
@@ -33,6 +31,7 @@ class Student extends Model
         'id_card',
         'tuition_payment',
         'registration_months',
+        'school_class_id', // 🔥 nouvel ajout
     ];
 
     protected $casts = [
@@ -43,27 +42,34 @@ class Student extends Model
         'id_card' => 'boolean',
         'registration_months' => 'array',
     ];
+
+    // Relations
     public function user()
     {
         return $this->belongsTo(User::class);
     }
-        public function guardians()
+
+    public function guardians()
     {
         return $this->hasMany(Guardian::class);
     }
-        /**
-     * Supprimer les gardiens associés avant l'étudiant
-     */
+
+    public function schoolClass()
+    {
+        return $this->belongsTo(SchoolClass::class);
+    }
+
+    // Supprimer les gardiens associés à la suppression
     protected static function booted()
     {
         static::deleting(function ($student) {
             $student->guardians()->delete();
         });
     }
-        // URL complète pour l'image
+
+    // URL complète pour l'image
     public function getProfilePhotoUrlAttribute()
     {
         return asset('storage/' . $this->student_image);
     }
-
 }
