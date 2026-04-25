@@ -1,188 +1,302 @@
 import { useState, useEffect, useContext } from "react";
 import { AppContext } from "../../Context/AppContext";
+import { Edit3, Save } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-hot-toast";
 
+import { getSettingsApi, saveSettingsApi } from "../../api/academicYearApi";
+
 export default function SettingsPage() {
   const { token } = useContext(AppContext);
 
-  const [settings, setSettings] = useState({
+  const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [form, setForm] = useState({
     school_name: "",
     school_email: "",
+    country_code: "+261",
     school_phone: "",
     school_address: "",
     academic_year: new Date(),
   });
 
-  const [loading, setLoading] = useState(true);
+  const [initialForm, setInitialForm] = useState(null);
 
-  // Charger les paramètres
+  // ================= LOAD =================
   useEffect(() => {
-    const fetchSettings = async () => {
+    const load = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/settings", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const data = await getSettingsApi(token);
 
-        const data = await res.json();
+        if (data) {
+          const newForm = {
+            school_name: data.school_name || "",
+            school_email: data.school_email || "",
+            country_code: data.country_code || "+261",
+            school_phone: data.school_phone || "",
+            school_address: data.school_address || "",
+            academic_year: data.academic_year
+              ? new Date(`${data.academic_year.split(" - ")[0]}-01-01`)
+              : new Date(),
+          };
 
-        setSettings({
-          school_name: data.school_name || "",
-          school_email: data.school_email || "",
-          school_phone: data.school_phone || "",
-          school_address: data.school_address || "",
-          academic_year: data.academic_year
-            ? new Date(data.academic_year.split(" - ")[0] + "-01-01")
-            : new Date(),
-        });
-
-      } catch (err) {
-        console.error(err);
-        toast.error("Erreur chargement des paramètres ❌");
+          setForm({ ...newForm });
+          setInitialForm({ ...newForm }); // 🔥 clone important
+        }
+      } catch (e) {
+        toast.error("Erreur chargement ❌");
       } finally {
         setLoading(false);
       }
     };
 
-    if (token) fetchSettings();
+    if (token) load();
   }, [token]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setSettings((prev) => ({ ...prev, [name]: value }));
+  // ================= CHECK EMPTY =================
+  const isEmpty =
+    !form.school_name &&
+    !form.school_email &&
+    !form.school_phone &&
+    !form.school_address;
+
+  // ================= RESET =================
+  const resetForm = () => {
+    if (!initialForm) return;
+    setForm(JSON.parse(JSON.stringify(initialForm))); // 🔥 clone profond
   };
 
-  const handleYearChange = (date) => {
-    setSettings((prev) => ({ ...prev, academic_year: date }));
-  };
+  // ================= SAVE =================
+  const handleSave = async () => {
+    if (saving) return;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (!form.school_name) {
+      toast.error("Nom école requis ❌");
+      return;
+    }
+
+    setSaving(true);
+
+    const body = {
+      ...form,
+      academic_year: `${form.academic_year.getFullYear()} - ${
+        form.academic_year.getFullYear() + 1
+      }`,
+    };
 
     try {
-      const body = {
-        school_name: settings.school_name,
-        school_email: settings.school_email,
-        school_phone: settings.school_phone,
-        school_address: settings.school_address,
-        academic_year: `${settings.academic_year.getFullYear()} - ${
-          settings.academic_year.getFullYear() + 1
-        }`,
-      };
-
-      const res = await fetch("http://localhost:8000/api/settings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
+      await toast.promise(saveSettingsApi(body, token), {
+        loading: "Sauvegarde en cours...",
+        success: "Paramètres enregistrés ✅",
+        error: "Erreur lors de la sauvegarde ❌",
       });
 
-      const data = await res.json();
-
-      toast.success(data.message || "Paramètres sauvegardés avec succès ✅");
-
-    } catch (err) {
-      console.error(err);
-      toast.error("Erreur lors de la sauvegarde ❌");
+      setEditing(false);
+      setInitialForm({ ...form }); // 🔥 update propre
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) return <p className="text-center mt-10">Chargement...</p>;
+  const handleChange = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-  return (
-    <div className="max-w-5xl mx-auto p-6 space-y-8">
+  const isDirty =
+    JSON.stringify(form) !== JSON.stringify(initialForm);
 
-      <h1 className="text-3xl font-bold text-red-700">
-        Paramètres de l'application
-      </h1>
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64 text-gray-500">
+        Chargement...
+      </div>
+    );
+  }
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+  // ================= EMPTY UI =================
+  if (isEmpty && !editing) {
+    return (
+      <div className="max-w-3xl mx-auto p-6">
+        <div className="bg-white border border-red-200 rounded-2xl shadow p-10 text-center space-y-4">
 
-        <Card title="Informations de l'école">
+          <div className="text-5xl">⚙️</div>
 
-          <Input
-            label="Nom de l'école"
-            name="school_name"
-            value={settings.school_name}
-            onChange={handleChange}
-          />
+          <h2 className="text-xl font-bold text-gray-800">
+            Paramètres non configurés
+          </h2>
 
-          <Input
-            label="Email"
-            name="school_email"
-            value={settings.school_email}
-            onChange={handleChange}
-          />
+          <p className="text-gray-500">
+            Configurez les informations de votre école pour commencer.
+          </p>
 
-          <Input
-            label="Téléphone"
-            name="school_phone"
-            value={settings.school_phone}
-            onChange={handleChange}
-          />
-
-          <Input
-            label="Adresse"
-            name="school_address"
-            value={settings.school_address}
-            onChange={handleChange}
-          />
-
-        </Card>
-
-        <Card title="Année scolaire">
-
-          <div className="flex flex-col gap-1">
-            <label className="text-gray-700">Année en cours</label>
-
-            <DatePicker
-              selected={settings.academic_year}
-              onChange={handleYearChange}
-              showYearPicker
-              dateFormat="yyyy"
-              className="w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:ring-2 focus:ring-red-400"
-            />
-
-          </div>
-
-        </Card>
-
-        <div className="text-right">
           <button
-            type="submit"
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow"
+            onClick={() => setEditing(true)}
+            className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
           >
-            Sauvegarder
+            Configurer maintenant
           </button>
+
+        </div>
+      </div>
+    );
+  }
+
+  // ================= NORMAL UI =================
+  return (
+    <div className="max-w-5xl mx-auto p-6">
+      <div className="bg-white border border-red-200 rounded-2xl shadow p-6 space-y-6">
+
+        {/* HEADER */}
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold text-red-700">
+            Paramètres de l'école
+          </h2>
+
+          <div className="flex gap-2">
+
+            {editing && (
+              <button
+                onClick={() => {
+                  resetForm(); // 🔥 fonctionne maintenant
+                  setEditing(false);
+                }}
+                className="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100"
+              >
+                Annuler
+              </button>
+            )}
+
+            <button
+              onClick={() => (editing ? handleSave() : setEditing(true))}
+              disabled={saving || (editing && !isDirty)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-200 hover:bg-red-50 transition disabled:opacity-50"
+            >
+              {editing ? (
+                <>
+                  <Save className="w-5 h-5 text-green-600" />
+                  <span className="text-green-600 text-sm">
+                    {saving ? "..." : "Enregistrer"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Edit3 className="w-5 h-5 text-red-600" />
+                  <span className="text-red-600 text-sm">
+                    Modifier
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-      </form>
+        {/* GRID */}
+        <div className="grid md:grid-cols-2 gap-4">
+
+          <Field
+            label="Nom école"
+            value={form.school_name}
+            editing={editing}
+            onChange={(v) => handleChange("school_name", v)}
+          />
+
+          <Field
+            label="Email"
+            value={form.school_email}
+            editing={editing}
+            onChange={(v) => handleChange("school_email", v)}
+          />
+
+          {/* TELEPHONE */}
+          <div className="space-y-1">
+            <p className="text-xs text-gray-500">Téléphone</p>
+
+            {!editing ? (
+              <div className="h-10 flex items-center px-3 rounded-lg bg-gray-50">
+                {form.country_code} {form.school_phone || "-"}
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <select
+                  value={form.country_code}
+                  onChange={(e) =>
+                    handleChange("country_code", e.target.value)
+                  }
+                  className="w-28 h-10 px-2 border rounded-lg focus:ring-2 focus:ring-red-400"
+                >
+                  <option value="+261">+261 (MG)</option>
+                  <option value="+33">+33 (FR)</option>
+                  <option value="+1">+1 (US)</option>
+                </select>
+
+                <input
+                  value={form.school_phone}
+                  onChange={(e) =>
+                    handleChange("school_phone", e.target.value)
+                  }
+                  placeholder="XX-XX-XXX-XX"
+                  className="flex-1 h-10 px-3 border rounded-lg focus:ring-2 focus:ring-red-400"
+                />
+              </div>
+            )}
+          </div>
+
+          <Field
+            label="Adresse"
+            value={form.school_address}
+            editing={editing}
+            onChange={(v) => handleChange("school_address", v)}
+          />
+
+          {/* YEAR */}
+          <div className="space-y-1">
+            <p className="text-xs text-gray-500">Année scolaire</p>
+
+            {!editing ? (
+              <div className="h-10 flex items-center px-3 rounded-lg bg-gray-50 text-red-700 font-medium">
+                {form.academic_year.getFullYear()} -{" "}
+                {form.academic_year.getFullYear() + 1}
+              </div>
+            ) : (
+              <DatePicker
+                selected={form.academic_year}
+                onChange={(date) => {
+                  if (date) handleChange("academic_year", date);
+                }}
+                showYearPicker
+                dateFormat="yyyy"
+                className="w-full h-10 px-3 border rounded-lg focus:ring-2 focus:ring-red-400"
+              />
+            )}
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }
 
-/* UI Components */
+/* ================= FIELD ================= */
 
-function Card({ title, children }) {
+function Field({ label, value, editing, onChange }) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow border border-red-200 space-y-4">
-      <h3 className="text-lg font-bold text-red-700">{title}</h3>
-      {children}
-    </div>
-  );
-}
+    <div className="space-y-1">
+      <p className="text-xs text-gray-500">{label}</p>
 
-function Input({ label, ...props }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-gray-700">{label}</label>
-      <input
-        {...props}
-        className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
-      />
+      {!editing ? (
+        <div className="h-10 flex items-center px-3 rounded-lg bg-gray-50">
+          {value || "-"}
+        </div>
+      ) : (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full h-10 px-3 border rounded-lg focus:ring-2 focus:ring-red-400"
+        />
+      )}
     </div>
   );
 }

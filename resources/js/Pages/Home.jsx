@@ -1,112 +1,145 @@
-import { Link } from 'react-router-dom';
-
+import { Link } from "react-router-dom";
+import { Brain, Heart, Sprout } from "lucide-react";
 
 export default function Home() {
   return (
-     <div className="bg-red-50 min-h-screen ">
+    <div className="bg-red-50 min-h-screen">
       <main className="ml-20 md:ml-64 p-6 transition-all duration-300">
 
-    <div className="min-h-screen bg-red-50">
+        {/* HERO */}
+        <header className="relative h-[80vh] flex items-center justify-center text-white">
+          <img
+            src="https://images.unsplash.com/photo-1588072432836-e10032774350"
+            alt="école"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-red-900/80 to-red-700/80"></div>
 
-      {/* Hero Section avec dégradé rouge */}
-      <header className="relative bg-gradient-to-r from-red-700 to-red-900 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">
-            Bienvenue à l'École Primaire Les Savants
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-            Un environnement d'apprentissage stimulant pour éveiller la curiosité de chaque enfant
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="relative z-10 text-center px-4">
+            <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">
+              École Primaire Les Savants
+            </h1>
+            <p className="text-lg md:text-2xl mb-8 max-w-2xl mx-auto">
+              Un environnement moderne pour développer le potentiel de chaque enfant
+            </p>
+
             <Link
               to="/contact"
-              className="border-2 border-white hover:bg-white hover:text-red-800 px-8 py-3 rounded-lg font-bold text-lg transition duration-300"
+              className="bg-white text-red-700 px-8 py-3 rounded-xl font-bold text-lg hover:scale-105 transition shadow-lg"
             >
               Nous contacter
             </Link>
           </div>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-white transform skew-y-1 origin-top-left"></div>
-      </header>
+        </header>
 
-      {/* Valeurs de l'école avec fond blanc */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">Nos Valeurs Pédagogiques</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+        {/* VALEURS */}
+        <section className="py-20">
+          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
+            Nos Valeurs
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-10">
             {[
               {
-                icon: '🧠',
-                title: 'Excellence Académique',
-                description: 'Un programme rigoureux adapté à chaque niveau'
+                icon: <Brain size={40} />,
+                title: "Excellence Académique",
+                desc: "Un programme adapté à chaque élève",
+                img: "https://images.unsplash.com/photo-1509062522246-3755977927d7"
               },
               {
-                icon: '❤️',
-                title: 'Bienveillance',
-                description: 'Un climat scolaire positif et inclusif'
+                icon: <Heart size={40} />,
+                title: "Bienveillance",
+                desc: "Un environnement positif et inclusif",
+                img: "https://images.unsplash.com/photo-1577896851231-70ef18881754"
               },
               {
-                icon: '🌱',
-                title: 'Développement Global',
-                description: 'Éducation intellectuelle, physique et sociale'
+                icon: <Sprout size={40} />,
+                title: "Développement Global",
+                desc: "Intellectuel, physique et social",
+                img: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b"
               }
-            ].map((item, index) => (
+            ].map((item, i) => (
               <div
-                key={index}
-                className="bg-red-50 p-6 rounded-xl shadow-sm hover:shadow-md transition duration-300 border border-red-100"
+                key={i}
+                className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition"
               >
-                <div className="text-4xl mb-4">{item.icon}</div>
-                <h3 className="text-xl font-bold mb-2 text-red-800">{item.title}</h3>
-                <p className="text-gray-600">{item.description}</p>
+                <div className="h-48 overflow-hidden">
+                  <img
+                    src={item.img}
+                    alt=""
+                    className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                  />
+                </div>
+
+                <div className="p-6 text-center">
+                  <div className="flex justify-center text-red-700 mb-3">
+                    {item.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-gray-600">{item.desc}</p>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Actualités avec thème rouge */}
-      <section className="py-16 bg-red-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-red-800">Dernières Actualités</h2>
+        {/* ACTUALITÉS */}
+        <section className="py-20 bg-white rounded-2xl shadow-inner">
+          <h2 className="text-3xl font-bold text-center mb-12 text-red-800">
+            Actualités
+          </h2>
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                title: 'Portes Ouvertes 2023',
-                date: '15 Octobre 2023',
-                excerpt: 'Venez découvrir notre établissement et nos méthodes pédagogiques'
+                title: "Portes Ouvertes",
+                date: "15 Octobre 2023",
+                img: "https://images.unsplash.com/photo-1571260899304-425eee4c7efc"
               },
               {
-                title: 'Nouveau Potager Éducatif',
-                date: '5 Septembre 2023',
-                excerpt: 'Un espace dédié à l\'éducation au développement durable'
+                title: "Potager Éducatif",
+                date: "5 Septembre 2023",
+                img: "https://images.unsplash.com/photo-1464226184884-fa280b87c399"
               },
               {
-                title: 'Rentrée Scolaire',
-                date: '1 Septembre 2023',
-                excerpt: 'Toutes les informations pratiques pour la rentrée'
+                title: "Rentrée Scolaire",
+                date: "1 Septembre 2023",
+                img: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b"
               }
-            ].map((news, index) => (
+            ].map((news, i) => (
               <div
-                key={index}
-                className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition duration-300 border-t-4 border-red-600"
+                key={i}
+                className="bg-red-50 rounded-xl overflow-hidden shadow hover:shadow-lg transition"
               >
-                <div className="h-48 bg-red-100"></div>
-                <div className="p-6">
+                <div className="h-48 overflow-hidden">
+                  <img
+                    src={news.img}
+                    alt=""
+                    className="w-full h-full object-cover hover:scale-110 transition duration-500"
+                  />
+                </div>
+
+                <div className="p-5">
                   <span className="text-sm text-red-600">{news.date}</span>
-                  <h3 className="text-xl font-bold my-2 text-gray-800">{news.title}</h3>
-                  <p className="text-gray-600 mb-4">{news.excerpt}</p>
-                  <Link to="#" className="text-red-600 hover:underline font-medium">
+                  <h3 className="text-lg font-bold mt-2 text-gray-800">
+                    {news.title}
+                  </h3>
+
+                  <Link
+                    to="#"
+                    className="inline-block mt-4 text-red-600 font-medium hover:underline"
+                  >
                     Lire la suite →
                   </Link>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
 
       </main>
     </div>
-      );
+  );
 }

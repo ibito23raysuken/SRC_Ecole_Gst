@@ -37,7 +37,7 @@ const handlePhoneChange = (e) => {
     phone: formatted
   }));
 };
-console.log("ContactSection render, student.phone:", student.phone);
+//console.log("ContactSection render, student.phone:", student.phone);
   const handleCountryCodeChange = (e) => {
     setStudent((prev) => ({ ...prev, country_code: e.target.value }));
   };

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('students', function (Blueprint $table) {
-          $table->id();
+            $table->id();
             $table->string('first_name');
             $table->string('last_name');
             $table->date('birth_date');
@@ -26,18 +26,17 @@ return new class extends Migration
             $table->string('previous_school')->nullable();
             $table->string('previous_class')->nullable();
             $table->integer('academic_year')->nullable();
-            $table->enum('grade_level', [
-                'PS', 'MS', 'GS', 'CP', 'CE1', 'CE2', 'CM1', 'CM2',
-                '6e', '5e', '4e', '3e', '2nde', '1ère', 'Term'
-            ]);
+            $table->foreignId('school_class_id')
+                ->nullable()
+                ->constrained('school_classes')
+                ->nullOnDelete();
             $table->text('special_needs')->nullable();
 
-            // Documents
-            $table->boolean('birth_certificate')->default(false);
-            $table->boolean('medical_certificate')->default(false);
+            // Documents élève
+            $table->boolean('birth_certificate')->default(false);   // Acte de naissance
+            $table->boolean('medical_certificate')->default(false); // Certificat médical
+            $table->boolean('residence_certificate')->default(false); // Certificat de résidence
             $table->boolean('report_card')->default(false);
-            $table->boolean('photo')->default(false);
-            $table->boolean('id_card')->default(false);
 
             // Paiement
             $table->enum('tuition_payment', ['half', 'full', 'not_paid']);

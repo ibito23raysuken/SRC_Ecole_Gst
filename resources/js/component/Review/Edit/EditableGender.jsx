@@ -28,18 +28,22 @@ export default function EditableGender({ value, student, updateStudentField }) {
     try {
       const res = await updateStudentApi(
         student.id,
-        { gender: tempValue },
-        token
+        { gender: tempValue }
       );
 
       // ✅ IMPORTANT : utiliser la réponse backend
-      updateStudentField(res.student, "Genre mis à jour ✅");
+      updateStudentField(res, "Genre mis à jour ✅");
 
       setEditing(false);
 
     } catch (err) {
       console.error(err);
-      toast.error("Erreur lors de la mise à jour ❌");
+      if (err.errors) {
+        const errorMessages = Object.values(err.errors).flat().join(", ");
+        toast.error(errorMessages || "Erreur lors de la mise à jour ❌");
+      } else {
+        toast.error("Erreur lors de la mise à jour ❌");
+      }
     } finally {
       setLoading(false);
     }

@@ -1,0 +1,1 @@
+export { getAllSchoolClassesApi } from "./apiSchoolClasses";

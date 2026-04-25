@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('subject')->nullable();
             $table->date('birth_date')->nullable();
             $table->decimal('salary', 12, 2)->default(0);
+            $table->string('photo')->nullable(); // URL ou chemin de la photo
             $table->timestamps();
         });
     }

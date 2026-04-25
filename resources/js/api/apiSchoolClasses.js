@@ -2,7 +2,13 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: "http://localhost:8000/api",
-  headers: { Accept: "application/json" }
+  headers: {
+    Accept: "application/json"
+  }
+});
+
+const authHeader = (token) => ({
+  Authorization: `Bearer ${token}`
 });
 
 /**
@@ -10,9 +16,7 @@ const api = axios.create({
  */
 export async function createSchoolClassApi(data, token) {
   const response = await api.post("/school-classes", data, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: authHeader(token)
   });
 
   return response.data;
@@ -23,14 +27,15 @@ export async function createSchoolClassApi(data, token) {
  */
 export async function getAllSchoolClassesApi(token) {
   const response = await api.get("/school-classes", {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: authHeader(token)
   });
 
-  return Array.isArray(response.data)
-    ? response.data
-    : response.data.data || [];
+  const data = response.data;
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+
+  return [];
 }
 
 /**
@@ -38,9 +43,7 @@ export async function getAllSchoolClassesApi(token) {
  */
 export async function getSchoolClassByIdApi(id, token) {
   const response = await api.get(`/school-classes/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: authHeader(token)
   });
 
   return response.data;
@@ -51,9 +54,7 @@ export async function getSchoolClassByIdApi(id, token) {
  */
 export async function updateSchoolClassApi(id, data, token) {
   const response = await api.put(`/school-classes/${id}`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: authHeader(token)
   });
 
   return response.data;
@@ -63,27 +64,28 @@ export async function updateSchoolClassApi(id, data, token) {
  * ❌ DELETE CLASS
  */
 export async function deleteSchoolClassApi(id, token) {
-  await api.delete(`/school-classes/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+  const response = await api.delete(`/school-classes/${id}`, {
+    headers: authHeader(token)
   });
+
+  return response.data;
 }
 
-// ✅ Fonction pour récupérer une classe libre selon le niveau
+/**
+ * 🎯 FREE CLASSES BY LEVEL
+ */
 export async function getFreeClassByLevelApi(level, token) {
-  if (!level) return null;
+  if (!level) return [];
 
-  const response = await api.get(`/school-classes/free`, {
+  const response = await api.get("/school-classes/free", {
     params: { level },
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json"
-    }
+    headers: authHeader(token)
   });
 
-  console.log("getFreeClassByLevelApi called with level:", response.data);
+  const data = response.data;
 
-  // ⚠️ ton backend retourne { classes: [...] }
-  return response.data?.classes?.[0] || null;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.classes)) return data.classes;
+
+  return [];
 }

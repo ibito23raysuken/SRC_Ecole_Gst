@@ -29,8 +29,7 @@ export default function GradeLevelEditable({ student, updateStudentField }) {
     try {
       const res = await updateStudentApi(
         student.id,
-        { grade_level: gradeLevel },
-        token
+        { grade_level: gradeLevel }
       );
 
       // 🔥 Mise à jour parent + toast global
@@ -40,10 +39,16 @@ export default function GradeLevelEditable({ student, updateStudentField }) {
 
     } catch (error) {
       console.error(error);
-
-      toast.error("Erreur lors de la modification ❌", {
-        position: "top-right",
-      });
+      if (error.errors) {
+        const errorMessages = Object.values(error.errors).flat().join(", ");
+        toast.error(errorMessages || "Erreur lors de la modification ❌", {
+          position: "top-right",
+        });
+      } else {
+        toast.error("Erreur lors de la modification ❌", {
+          position: "top-right",
+        });
+      }
 
     } finally {
       setLoading(false);

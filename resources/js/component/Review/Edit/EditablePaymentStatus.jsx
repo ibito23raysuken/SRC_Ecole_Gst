@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { Edit3, Save, X, CreditCard } from "lucide-react";
 import { updateStudentApi } from "../../../api/apistudents";
 import { AppContext } from "../../../Context/AppContext";
+import { toast } from "react-hot-toast";
 
 export default function EditablePaymentStatus({ student, updateStudentField }) {
   const { token } = useContext(AppContext);
@@ -65,18 +66,24 @@ export default function EditablePaymentStatus({ student, updateStudentField }) {
             tuitionPayment: tempPayment.tuition_payment,
             registrationMonths: tempPayment.registration_months,
           }
-        },
-        token
+        }
       );
 
-      updateStudentField("tuition_payment", tempPayment.tuition_payment);
-      updateStudentField("registration_months", tempPayment.registration_months);
+      updateStudentField({
+        tuition_payment: tempPayment.tuition_payment,
+        registration_months: tempPayment.registration_months
+      });
 
       setEditing(false);
 
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la sauvegarde !");
+      if (err.errors) {
+        const errorMessages = Object.values(err.errors).flat().join(", ");
+        toast.error(errorMessages || "Erreur lors de la sauvegarde !");
+      } else {
+        toast.error("Erreur lors de la sauvegarde !");
+      }
     } finally {
       setLoading(false);
     }

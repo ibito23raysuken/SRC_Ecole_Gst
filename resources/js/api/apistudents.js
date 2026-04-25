@@ -1,95 +1,78 @@
-//path: resources/js/api/apistudents.js
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: "http://localhost:8000/api",
-  headers: { Accept: "application/json" }
-});
+import api from "./api";
 
 /**
- * ➕ CREATE STUDENT
+ * 📋 GET ALL
  */
-export async function createStudentApi(formData, token) {
-console.log("API CALL - createStudentApi", formData);
-  const response = await api.post("/students", formData, {
-    headers: {
-      Authorization: `Bearer ${token}`
-      // ⚠️ NE PAS mettre Content-Type
-      // axios le gère automatiquement pour multipart/form-data
+export const getStudentsApi = async () => {
+  const res = await api.get("/students");
+  return res.data.data || res.data;
+};
+
+/**
+ * 🔄 ALIAS (évite les erreurs anciennes)
+ */
+export const getAllStudentsApi = getStudentsApi;
+
+/**
+ * 🔍 GET ONE
+ */
+export const getStudentApi = async (id) => {
+  const res = await api.get(`/students/${id}`);
+  return res.data.data || res.data;
+};
+
+/**
+ * ➕ CREATE
+ */
+export const createStudentApi = async (formData) => {
+  try {
+    const res = await api.post("/students", formData);
+    return res.data;
+  } catch (error) {
+    if (error.response?.status === 422) {
+      throw error.response.data;
     }
-  });
-
-  return response.data;
-}
-
+    throw error;
+  }
+};
 
 /**
- * ✏️ UPDATE STUDENT
+ * ✏️ UPDATE
  */
-export async function updateStudentApi(studentId, data, token) {
+export const updateStudentApi = async (id, data) => {
   const formData = new FormData();
-
-  // ⚡ Laravel PATCH via POST
   formData.append("_method", "PATCH");
 
-  // Parcours de chaque champ
   Object.keys(data).forEach((key) => {
-    const value = data[key];
-
-    if (value instanceof File) {
-      // Image ou fichier
-      formData.append(key, value);
-    } else if (value !== undefined && value !== null) {
-      // ⚡ Si c'est un objet ou tableau (parents, payment, dossier), stringify pour Laravel
-      if (Array.isArray(value) || typeof value === "object") {
-        formData.append(key, JSON.stringify(value));
-      } else {
-        // Valeurs simples (string, number, boolean)
-        formData.append(key, value);
-      }
+    if (data[key] instanceof File) {
+      formData.append(key, data[key]);
+    } else if (typeof data[key] === 'object' && data[key] !== null) {
+      formData.append(key, JSON.stringify(data[key]));
+    } else if (data[key] !== null && data[key] !== undefined && data[key] !== "") {
+      formData.append(key, data[key]);
     }
   });
 
-  // ⚠️ Important : ne pas définir Content-Type → axios gère multipart/form-data
-  const response = await api.post(`/students/${studentId}`, formData, {
-    headers: {
-      Authorization: `Bearer ${token}`
+  try {
+    const res = await api.post(`/students/${id}`, formData);
+
+    // ✅ Handle success - return the student data
+    if (res.status === 200 && res.data.data) {
+      return res.data.data;
     }
-  });
-
-  return response.data;
-}
-
-
-/**
- * 🔍 GET STUDENT BY ID
- */
-export async function getStudentsApi(id, token) {
-  const response = await api.get(`/students/${id}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-
-  return response.data;
-}
-
+    return res.data;
+  } catch (error) {
+    // ✅ Handle validation errors and re-throw
+    if (error.response?.status === 422) {
+      throw error.response.data;
+    }
+    throw error;
+  }
+};
 
 /**
- * 🔍 GET ALL STUDENTS
+ * ❌ DELETE
  */
-export async function getAllStudentsApi(token) {
-  const response = await api.get('/students', {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-
-  return response.data;
-}
-
-
-/**
- * ❌ DELETE STUDENT
- */
-export async function deleteStudentApi(studentId, token) {
-  await api.delete(`/students/${studentId}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-}
+export const deleteStudentApi = (id) => {
+  return api.delete(`/students/${id}`);
+};

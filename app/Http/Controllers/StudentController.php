@@ -25,7 +25,9 @@ class StudentController extends Controller implements HasMiddleware
      * Display a listing of the resource.
      */
     public function index(){
-         return Student::with('guardians')->get();
+         return Student::with(['guardians', 'schoolClass' => function($query) {
+             $query->withCount('students');
+         }])->get();
     }
 
     /**
@@ -40,6 +42,10 @@ class StudentController extends Controller implements HasMiddleware
 
             if ($request->has('payment') && is_string($request->payment)) {
                 $request->merge(['payment' => json_decode($request->payment, true)]);
+            }
+
+            if ($request->has('paid_months') && is_string($request->paid_months)) {
+                $request->merge(['paid_months' => json_decode($request->paid_months, true)]);
             }
 
             if ($request->has('dossier') && is_string($request->dossier)) {
@@ -61,6 +67,7 @@ class StudentController extends Controller implements HasMiddleware
 
                 'academic_year' => 'nullable|integer|min:2020|max:2030',
                 'grade_level' => 'nullable|in:PS,MS,GS,CP,CE1,CE2,CM1,CM2,6e,5e,4e,3e,2nde,1ère,Term',
+                'school_class_id' => 'required|integer|exists:school_classes,id',
 
                 'registration_status' => 'required|in:not_paid,half,full',
                 'paid_months' => 'array',
@@ -92,8 +99,9 @@ class StudentController extends Controller implements HasMiddleware
         // Vérification des règles
         if ($validator->fails()) {
             return response()->json([
-                'errors' => $validator->errors()
-            ,'data'=>$request->request], 422);
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ], 422);
         }
 
         // Création de l'étudiant
@@ -112,6 +120,7 @@ class StudentController extends Controller implements HasMiddleware
                     'previous_class' => $request->previous_class,
                     'academic_year' => $request->academic_year,
                     'grade_level' => $request->grade_level,
+                    'school_class_id' => $request->school_class_id,
                     'special_needs' => $request->special_needs,
 
                     // Ajout du chemin de la photo
@@ -120,8 +129,8 @@ class StudentController extends Controller implements HasMiddleware
                     // Documents
                     'birth_certificate' => $request->boolean('birth_certificate'),
                     'medical_certificate' => $request->boolean('medical_certificate'),
+                    'residence_certificate' => $request->boolean('residence_certificate'),
                     'report_card' => $request->boolean('report_card'),
-                    'id_card' => $request->boolean('id_card'),
 
 
                     // Paiement
@@ -154,7 +163,9 @@ class StudentController extends Controller implements HasMiddleware
      * Display the specified resource.
      */
     public function show(Student $student){
-        $student = Student::with('guardians')->findOrFail($student->id);
+        $student = Student::with(['guardians', 'schoolClass' => function($query) {
+            $query->withCount('students');
+        }])->findOrFail($student->id);
         return $student;
     }
 
@@ -185,6 +196,7 @@ public function update(Request $request, Student $student){
         'city' => 'nullable|string|max:255',
         'postalCode' => 'nullable|string|max:10',
         'phone' => 'sometimes|string|max:20',
+        'school_class_id' => 'sometimes|integer|exists:school_classes,id',
         'academicYear' => 'nullable|integer|min:2020|max:2030',
         'gradeLevel' => 'nullable|in:PS,MS,GS,CP,CE1,CE2,CM1,CM2,6e,5e,4e,3e,2nde,1ère,Term',
         'payment' => 'sometimes|array',
@@ -198,8 +210,8 @@ public function update(Request $request, Student $student){
         'dossier' => 'sometimes|array',
         'dossier.birthCertificate' => 'sometimes|required_with:dossier|boolean',
         'dossier.medicalCertificate' => 'sometimes|required_with:dossier|boolean',
+        'dossier.residenceCertificate' => 'sometimes|required_with:dossier|boolean',
         'dossier.reportCard' => 'sometimes|required_with:dossier|boolean',
-        'dossier.photo' => 'sometimes|required_with:dossier|boolean',
         'dossier.idCard' => 'sometimes|required_with:dossier|boolean',
         'student_image' => 'nullable|image|max:1999',
     ]);
@@ -253,7 +265,7 @@ public function update(Request $request, Student $student){
     $fields = [
         'first_name', 'last_name', 'birth_date', 'birth_place', 'gender',
         'nationality', 'address', 'city', 'postal_code', 'phone',
-        'previous_school', 'previous_class', 'academic_year', 'grade_level', 'special_needs',
+        'previous_school', 'previous_class', 'academic_year', 'grade_level', 'school_class_id', 'special_needs',
     ];
 
     foreach ($fields as $field) {
@@ -267,8 +279,8 @@ public function update(Request $request, Student $student){
     $dossierMap = [
         'birthCertificate' => 'birth_certificate',
         'medicalCertificate' => 'medical_certificate',
+        'residenceCertificate' => 'residence_certificate',
         'reportCard' => 'report_card',
-        'idCard' => 'id_card',
     ];
 
     foreach ($dossierMap as $reqKey => $dbField) {
@@ -312,7 +324,9 @@ public function update(Request $request, Student $student){
     // 10. Retour JSON
     return response()->json([
         'message' => 'Student updated successfully',
-        'guardians' => $student->guardians()->get(),
+        'data' => $student->fresh()->load(['guardians', 'schoolClass' => function($query) {
+            $query->withCount('students');
+        }]),
         'modifiedSections' => $modifiedSections
     ], 200);
 }

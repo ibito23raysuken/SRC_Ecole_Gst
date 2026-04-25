@@ -48,16 +48,20 @@ export default function EditableRelationship({
     try {
       const res = await updateStudentApi(
         student.id,
-        { relationship: tempValue },
-        token
+        { relationship: tempValue }
       );
 
-      updateStudentField(res.student, "Relation mise à jour ✅");
+      updateStudentField(res, "Relation mise à jour ✅");
 
       setEditing(false);
     } catch (err) {
       console.error(err);
-      toast.error("Erreur lors de la mise à jour ❌");
+      if (err.errors) {
+        const errorMessages = Object.values(err.errors).flat().join(", ");
+        toast.error(errorMessages || "Erreur lors de la mise à jour ❌");
+      } else {
+        toast.error("Erreur lors de la mise à jour ❌");
+      }
     } finally {
       setLoading(false);
     }

@@ -26,15 +26,19 @@ export default function EditablePhone({ student, updateStudentField, label = "T�
     try {
       const res = await updateStudentApi(
         student.id,
-        { phone, country_code: countryCode },
-        token
+        { phone, country_code: countryCode }
       );
 
-      updateStudentField(res.student, `${label} mis à jour ✅`);
+      updateStudentField(res, `${label} mis à jour ✅`);
       setEditing(false);
     } catch (err) {
       console.error(err);
-      toast.error(`Erreur lors de la mise à jour de ${label} ❌`);
+      if (err.errors) {
+        const errorMessages = Object.values(err.errors).flat().join(", ");
+        toast.error(errorMessages || `Erreur lors de la mise à jour de ${label} ❌`);
+      } else {
+        toast.error(`Erreur lors de la mise à jour de ${label} ❌`);
+      }
     } finally {
       setLoading(false);
     }

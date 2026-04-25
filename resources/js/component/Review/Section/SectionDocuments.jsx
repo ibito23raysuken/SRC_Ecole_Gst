@@ -5,8 +5,8 @@ export default function SectionDocuments({ student }) {
     const documents = [
         { key: "birth_certificate", label: "Acte de naissance" },
         { key: "medical_certificate", label: "Certificat médical" },
+        { key: "residence_certificate", label: "Certificat de résidence" },
         { key: "report_card", label: "Relevé de notes" },
-        { key: "id_card", label: "Carte d'identité" },
     ];
 
     return (

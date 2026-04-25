@@ -12,10 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('students', function (Blueprint $table) {
-            // supprimer l’ancien champ boolean
-            $table->dropColumn('photo');
-             // ajouter un champ string pour stocker le chemin
-            $table->string('student_image')->nullable()->after('report_card');
+            $table->string('student_image')->nullable();
         });
     }
 
@@ -25,8 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('students', function (Blueprint $table) {
-            $table->boolean('photo')->default(false);
-           $table->dropColumn('student_image');
+            $table->dropColumn('student_image');
         });
     }
 };

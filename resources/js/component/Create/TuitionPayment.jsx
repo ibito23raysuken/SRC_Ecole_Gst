@@ -5,7 +5,7 @@ export default function TuitionPayment({ student, setStudent, errors }) {
 
   const [tempValue, setTempValue] = useState({
     registration_status: student.registration_status || "not_paid",
-    paid_months: student.paid_months || [],
+    paid_months: student.registration_months || [],
   });
 
   const registrationFee = 25000;
@@ -34,6 +34,17 @@ export default function TuitionPayment({ student, setStudent, errors }) {
       paid_months: student.paid_months || [],
     });
   }, [student.registration_status, student.paid_months]);
+
+  // Initialiser le state parent si nécessaire
+  useEffect(() => {
+    if (!student.registration_status) {
+      setStudent(prev => ({
+        ...prev,
+        registration_status: "not_paid",
+        paid_months: [],
+      }));
+    }
+  }, []);
 
   // Calcul des montants
   const registrationAmount =

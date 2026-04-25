@@ -60,8 +60,7 @@ export default function EditableProfileImage({ student, updateStudentField }) {
     try {
       const response = await updateStudentApi(
         student.id,
-        { student_image: file },
-        token
+        { student_image: file }
       );
 
       // 🔥 update global + toast
@@ -74,11 +73,18 @@ export default function EditableProfileImage({ student, updateStudentField }) {
     } catch (err) {
       console.error(err);
 
-      toast.error("Erreur lors du téléversement ❌", {
-        position: "top-right",
-      });
-
-      setError("Erreur lors du téléversement.");
+      if (err.errors) {
+        const errorMessages = Object.values(err.errors).flat().join(", ");
+        toast.error(errorMessages || "Erreur lors du téléversement ❌", {
+          position: "top-right",
+        });
+        setError(errorMessages || "Erreur lors du téléversement.");
+      } else {
+        toast.error("Erreur lors du téléversement ❌", {
+          position: "top-right",
+        });
+        setError("Erreur lors du téléversement.");
+      }
 
     } finally {
       setLoading(false);

@@ -24,26 +24,36 @@ class Student extends Model
         'previous_class',
         'academic_year',
         'special_needs',
+
+        // Documents physiques
         'birth_certificate',
         'medical_certificate',
+        'residence_certificate',
         'report_card',
+
         'student_image',
-        'id_card',
+
         'tuition_payment',
         'registration_months',
-        'school_class_id', // 🔥 nouvel ajout
+
+        'school_class_id',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
         'birth_certificate' => 'boolean',
         'medical_certificate' => 'boolean',
+        'residence_certificate' => 'boolean',
         'report_card' => 'boolean',
-        'id_card' => 'boolean',
         'registration_months' => 'array',
     ];
 
-    // Relations
+    /*
+    |--------------------------------------------------------------------------
+    | RELATIONS
+    |--------------------------------------------------------------------------
+    */
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -59,17 +69,60 @@ class Student extends Model
         return $this->belongsTo(SchoolClass::class);
     }
 
-    // Supprimer les gardiens associés à la suppression
+    /*
+    |--------------------------------------------------------------------------
+    | BOOT - suppression cascade
+    |--------------------------------------------------------------------------
+    */
+
     protected static function booted()
     {
         static::deleting(function ($student) {
+
+            // supprimer les guardians liés
             $student->guardians()->delete();
+
+            // (optionnel) supprimer fichiers si tu veux
+            // Storage::disk('public')->delete($student->birth_certificate);
         });
     }
 
-    // URL complète pour l'image
+    /*
+    |--------------------------------------------------------------------------
+    | ACCESSORS
+    |--------------------------------------------------------------------------
+    */
+
     public function getProfilePhotoUrlAttribute()
     {
-        return asset('storage/' . $this->student_image);
+        return $this->student_image
+            ? asset('storage/' . $this->student_image)
+            : null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HELPERS (optionnel mais utile)
+    |--------------------------------------------------------------------------
+    */
+
+    public function hasBirthCertificate()
+    {
+        return $this->birth_certificate;
+    }
+
+    public function hasMedicalCertificate()
+    {
+        return $this->medical_certificate;
+    }
+
+    public function hasResidenceCertificate()
+    {
+        return $this->residence_certificate;
+    }
+
+    public function hasReportCard()
+    {
+        return $this->report_card;
     }
 }

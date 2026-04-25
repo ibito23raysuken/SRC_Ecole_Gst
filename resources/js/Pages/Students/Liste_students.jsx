@@ -131,7 +131,7 @@ export default function StudentList() {
 
                     <td className="p-3">{student.last_name}</td>
                     <td className="p-3">{student.first_name}</td>
-                    <td className="p-3 text-center">{student.grade_level}</td>
+                    <td className="p-3 text-center">{student.school_class?.name || "Non assigné"}</td>
                     <td className="p-3 text-center">{student.academic_year}</td>
 
                     <td className="p-3 flex justify-end gap-4">

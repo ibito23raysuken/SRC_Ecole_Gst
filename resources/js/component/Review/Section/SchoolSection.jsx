@@ -3,10 +3,11 @@ import React from "react";
 import { School, CreditCard } from "lucide-react";
 import Section from "../Section/section";
 import EditableField from "../Edit/EditableField";
+import EditableSelectField from "../Edit/EditableSelectField";
 import EditablePaymentStatus from "../Edit/EditablePaymentStatus";
 
 export default function SchoolSection({ student, setStudent }) {
-    console.log("SchoolSection student:", student.tuition_payment);
+    console.log("SchoolSection student:", student.school_class.name);
     return (
         <Section title="Scolarité">
             <div className="space-y-8">
@@ -34,6 +35,44 @@ export default function SchoolSection({ student, setStudent }) {
                             cle="previous_class"
                             label="Classe précédente"
                             value={student.previous_class || "Non renseigné"}
+                            student={student}
+                            setStudent={setStudent}
+                        />
+
+                        <EditableSelectField
+                            field="school_class_id"
+                            label="Classe actuelle"
+                            value={student.school_class_id}
+                            displayValue={student.school_class ? `${student.school_class.name} (${student.school_class.level})` : "Non assigné"}
+                            student={student}
+                            updateStudentField={setStudent}
+                        />
+
+                    </div>
+
+                    {/* Informations supplémentaires */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <EditableField
+                            cle="current_school"
+                            label="École actuelle"
+                            value={student.current_school || "Non renseigné"}
+                            student={student}
+                            setStudent={setStudent}
+                        />
+
+                        <EditableField
+                            cle="academic_level"
+                            label="Niveau académique"
+                            value={student.academic_level || "Non renseigné"}
+                            student={student}
+                            setStudent={setStudent}
+                        />
+
+                        <EditableField
+                            cle="registration_status"
+                            label="Statut d'inscription"
+                            value={student.registration_status || "Non renseigné"}
                             student={student}
                             setStudent={setStudent}
                         />

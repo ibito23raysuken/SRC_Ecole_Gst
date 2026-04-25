@@ -122,44 +122,45 @@ class SchoolClassController extends Controller
      *   GET /api/classes/libres?academic_year_id=3
      *   GET /api/classes/libres?level=Terminale&academic_year_id=3
      */
-    public function getFreeClasses(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'level'            => 'nullable|string|max:50',
-            'academic_year_id' => 'nullable|integer|exists:academic_years,id',
-        ]);
+public function getFreeClasses(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'level'            => 'nullable|string|max:50',
+        'academic_year_id' => 'nullable|integer|exists:academic_years,id',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
 
+    try {
         $classes = SchoolClass::withCount('students')
-            // Filtre optionnel par niveau
             ->when($request->level, fn($q, $l) => $q->where('level', $l))
-            // Filtre optionnel par année scolaire
             ->when($request->academic_year_id, fn($q, $id) => $q->where('academic_year_id', $id))
-            // On délègue le calcul de disponibilité à la base de données
-            ->having('students_count', '<', DB::raw('capacity'))
+
+            // ✅ CORRECTION ICI
+            ->whereColumn('students_count', '<', 'capacity')
+
             ->orderBy('level')
             ->orderBy('name')
             ->get()
-            // On ajoute une colonne virtuelle pour afficher les places restantes
             ->map(function ($class) {
                 $class->places_disponibles = $class->capacity - $class->students_count;
                 return $class;
             });
 
-        if ($classes->isEmpty()) {
-            return response()->json([
-                'message' => 'Aucune classe disponible pour les critères sélectionnés.',
-                'classes' => [],
-            ], 200);
-        }
-
         return response()->json([
-            'message'        => $classes->count() . ' classe(s) disponible(s) trouvée(s).',
-            'total'          => $classes->count(),
-            'classes'        => $classes,
+            'message' => $classes->isEmpty()
+                ? 'Aucune classe disponible.'
+                : $classes->count() . ' classe(s) disponible(s)',
+            'total'   => $classes->count(),
+            'classes' => $classes,
         ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 }

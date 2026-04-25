@@ -21,6 +21,7 @@ return new class extends Migration
                 ->constrained('academic_years')
                 ->onDelete('set null');
             $table->timestamps();
+            $table->unsignedInteger('students_count')->default(0)->after('capacity');
         });
     }
 
