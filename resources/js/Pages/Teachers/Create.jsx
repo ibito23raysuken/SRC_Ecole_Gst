@@ -139,7 +139,7 @@ export default function CreateTeacher() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-red-50 p-6">
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Nouvel Enseignant</h1>
+          <h1 className="text-3xl font-bold text-red-800">Nouvel Enseignant</h1>
           <p className="text-gray-500 text-sm">Ajouter un professeur au système</p>
         </div>
 
@@ -148,11 +148,32 @@ export default function CreateTeacher() {
 
             {/* PHOTO CARD */}
             <div className="bg-white/70 backdrop-blur-xl border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col items-center">
-              <div className="w-28 h-28 rounded-full bg-gray-100 overflow-hidden mb-4">
-                {preview ? <img src={preview} className="w-full h-full object-cover"/>
-                  : <div className="flex items-center justify-center h-full text-gray-400 text-sm">Photo</div>}
-              </div>
-              <label className="text-sm text-red-600 cursor-pointer hover:underline">
+          <div className="relative mb-4">
+            <div className="w-32 h-32 rounded-full border-4 border-gray-200 bg-gray-100 flex items-center justify-center overflow-hidden">
+              {preview ? (
+                <img
+                  src={preview}
+                  alt="Aperçu de la photo"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <svg
+                  className="w-12 h-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              )}
+            </div>
+          </div>
+              <label className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transform hover:scale-105 transition-all duration-200 text-sm font-medium text-center shadow-md">
                 Changer la photo
                 <input type="file" name="photo" className="hidden" onChange={handleChange}/>
               </label>

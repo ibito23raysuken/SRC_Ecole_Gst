@@ -25,7 +25,7 @@ export default function PersonalInfoSection({ student, handleChange, errors = {}
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-      <h2 className="text-xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200">
+      <h2 className="text-xl font-bold text-gray-800 mb-6 pb-2 border-b text-3xl font-bold text-red-800">
         Informations personnelles
       </h2>
 

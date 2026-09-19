@@ -76,7 +76,7 @@ export default function GuardianSection({
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">
+        <h2 className="text-xl font-bold text-3xl font-bold text-red-800">
           Responsables légaux ({guardians.length}/4)
         </h2>
       </div>

@@ -101,7 +101,7 @@ export default function TuitionPayment({ student, setStudent, errors }) {
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 flex flex-col gap-4">
-      <h2 className="text-lg font-bold text-gray-800 mb-2">
+      <h2 className="text-lg font-bold text-3xl font-bold text-red-800 mb-2">
         Paiement des frais
       </h2>
 

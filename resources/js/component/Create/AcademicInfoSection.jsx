@@ -76,10 +76,10 @@ export default function AcademicInfoSection({ student, setStudent }) { // ❌ en
 
   // ⚡ niveaux uniques
   const previousLevels = Array.from(new Set(allClasses.map(c => c.level)));
-  console.log("student render, previous_level:", student, "availableClasses:", availableClasses, "noClassMessage:", noClassMessage);
+  //console.log("student render, previous_level:", student, "availableClasses:", availableClasses, "noClassMessage:", noClassMessage);
   return (
     <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-      <h2 className="text-xl font-bold mb-4">Informations académiques</h2>
+      <h2 className="text-xl font-bold mb-4 text-3xl font-bold text-red-800">Informations académiques</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 

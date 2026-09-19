@@ -3,133 +3,209 @@ import Section from "./section";
 import EditableField from "../Edit/EditableField";
 import { Plus, X } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { updateStudentApi } from "../../../api/apistudents"; // ⚡ API pour sauvegarde
+import { updateStudentApi } from "../../../api/apistudents";
 import { AppContext } from "../../../Context/AppContext";
 
 export default function SectionParents({ student, updateStudentField }) {
   const { token } = useContext(AppContext);
-  const [parents, setParents] = useState(student.guardians || []);
+
+  const parents = student.guardians || [];
+
   const saveTimeout = useRef(null);
 
-  // ⚡ Synchronisation si student.guardians change
-  useEffect(() => {
-    setParents(student.guardians || []);
-  }, [student.guardians]);
-
-  // 🔹 Sauvegarde parents sur le backend avec debounce
+  // ===============================
+  // DEBOUNCE SAVE
+  // ===============================
   const saveParentsDebounced = (newParents) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
+
     saveTimeout.current = setTimeout(async () => {
       try {
-        console.log("token in saveParentsDebounced", token);
-        const updatedStudent = await updateStudentApi(student.id, { guardians: newParents });
+        const updatedStudent = await updateStudentApi(student.id, {
+          guardians: newParents,
+        });
         updateStudentField(updatedStudent, "Parents sauvegardés !");
       } catch (error) {
         console.error(error);
-        if (error.errors) {
-          const errorMessages = Object.values(error.errors).flat().join(", ");
-          toast.error(errorMessages || "Erreur lors de la sauvegarde !");
-        } else {
-          toast.error("Erreur lors de la sauvegarde !");
-        }
+        toast.error("Erreur lors de la sauvegarde !");
       }
-    }, 500); // ⚡ 0.5s après la dernière modification
+    }, 1000);
   };
 
-  // 🔹 Met à jour uniquement le nom d’un parent
-  const handleUpdateParentName = (index, value) => {
+  // ===============================
+  // UPDATE
+  // ===============================
+  const updateParent = (index, updates) => {
     const newParents = [...parents];
     newParents[index] = {
       ...newParents[index],
-      name: value,
-      student_id: student.id,
-      id: newParents[index].id || null
+      ...updates,
     };
-    setParents(newParents);
+
+    updateStudentField({ ...student, guardians: newParents }, null);
     saveParentsDebounced(newParents);
   };
 
-  // 🔹 Met à jour un champ d’un parent
-  const handleUpdateParentField = (index, field, value) => {
-    const newParents = [...parents];
-    newParents[index] = {
-      ...newParents[index],
-      [field]: value,
-      student_id: student.id,
-      id: newParents[index].id || null
-    };
-    setParents(newParents);
-    saveParentsDebounced(newParents);
-  };
+  // ===============================
+  // ADD ← FIX : id stable avec crypto.randomUUID()
+  // ===============================
+  const [showAddParentForm, setShowAddParentForm] = useState(false);
+  const [newParent, setNewParent] = useState({ name: "", first_name: "", relationship: "" });
 
-  // 🔹 Ajouter un parent vide
   const handleAddParent = () => {
-    const newParents = [...parents, { name: "", student_id: student.id }];
-    setParents(newParents);
-    saveParentsDebounced(newParents);
-    toast.success("Parent ajouté !");
+    setShowAddParentForm(true);
   };
 
-  // 🔹 Supprimer un parent avec confirmation
-  const handleRemoveParent = (index) => {
-    const parentName = parents[index].name || "ce parent";
-    if (!confirm(`Voulez-vous vraiment supprimer ${parentName} ?`)) return;
-    const newParents = parents.filter((_, i) => i !== index);
-    setParents(newParents);
+  const handleSaveParent = (newParent) => {
+    if (!newParent.name || !newParent.first_name || !newParent.relationship) {
+      toast.error("Tous les champs doivent être remplis.");
+      return;
+    }
+
+    const newParents = [
+      ...parents,
+      { id: crypto.randomUUID(), ...newParent },
+    ];
+
+    updateStudentField(
+      { ...student, guardians: newParents },
+      "Parent ajouté !"
+    );
+
     saveParentsDebounced(newParents);
-    toast.success("Parent supprimé !");
+    setShowAddParentForm(false); // Fermer le formulaire après l'ajout
+    setNewParent({ name: "", first_name: "", relationship: "" }); // Réinitialiser le formulaire
+  };
+
+  const handleCancelAddParent = () => {
+    setShowAddParentForm(false);
+  };
+
+  // ===============================
+  // REMOVE
+  // ===============================
+  const handleRemoveParent = (index) => {
+    const parentName = parents[index]?.name || "ce parent";
+
+    if (!window.confirm(`Supprimer ${parentName} ?`)) return;
+
+    const newParents = parents.filter((_, i) => i !== index);
+
+    updateStudentField(
+      { ...student, guardians: newParents },
+      "Parent supprimé !"
+    );
+
+    saveParentsDebounced(newParents);
   };
 
   return (
-    <Section title="Parents">
-      <div className="grid grid-cols-1 gap-4">
-        {parents.map((parent, index) => (
-          <div
-            key={index}
-            className="flex items-center justify-between gap-2 p-4 border border-gray-200 rounded-lg bg-white shadow-sm hover:bg-gray-50 transition-colors"
-          >
-            {/* 🔹 Champ éditable pour le nom */}
-            <EditableField
-              label="Nom"
-              value={parent.name}
-              onChange={(value) => handleUpdateParentName(index, value)}
-              className="flex-1 bg-white border border-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 focus:outline-none"
-            />
+    <Section title="">
+      <div className="bg-white p-6 rounded-2xl shadow-md border">
 
-            {/* 🔹 Champ éditable pour le prénom */}
-            <EditableField
-              label="Prénom"
-              value={parent.first_name || ""}
-              onChange={(value) => handleUpdateParentField(index, "first_name", value)}
-              className="flex-1 bg-white border border-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 focus:outline-none"
-            />
-
-            {/* 🔹 Champ éditable pour la relation */}
-            <EditableField
-              label="Relation"
-              value={parent.relationship || ""}
-              onChange={(value) => handleUpdateParentField(index, "relationship", value)}
-              className="flex-1 bg-white border border-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 focus:outline-none"
-            />
-
-            {/* 🔹 Bouton supprimer parent – rouge moderne */}
-            <button
-              onClick={() => handleRemoveParent(index)}
-              title="Supprimer ce parent"
-              className="p-2 text-red-500 hover:text-red-700 rounded-md transition-colors"
-            >
-              <X size={20} />
-            </button>
+        {/* HEADER */}
+        <div className="flex justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold">Parents / Responsables</h2>
           </div>
-        ))}
+          <div className="px-3 py-1 bg-gray-100 rounded-full">
+            {parents.length}
+          </div>
+        </div>
 
-        {/* 🔹 Bouton ajouter un parent – vert moderne */}
+        {/* LIST */}
+        <div className="space-y-4">
+          {parents.map((parent, index) => (
+            // ← FIX : key stable sur parent.id, fallback index pour anciens enregistrements
+            <div key={parent.id || index} className="border p-4 rounded-xl">
+
+              {/* TOP */}
+              <div className="flex justify-between mb-3">
+                <span>Parent {index + 1}</span>
+                <button
+                  onClick={() => handleRemoveParent(index)}
+                  className="text-red-500"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* FIELDS */}
+              <div className="grid md:grid-cols-3 gap-3">
+
+                <EditableField
+                  label="Nom"
+                  value={parent.name}
+                  onChange={(v) => updateParent(index, { name: v })}
+                />
+
+                <EditableField
+                  label="Prénom"
+                  value={parent.first_name}
+                  onChange={(v) => updateParent(index, { first_name: v })}
+                />
+
+                <EditableField
+                  label="Relation"
+                  value={parent.relationship}
+                  onChange={(v) => updateParent(index, { relationship: v })}
+                />
+
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ADD */}
         <button
           onClick={handleAddParent}
-          className="flex items-center gap-1 mt-2 px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
+          className="mt-6 w-full bg-red-500 text-white py-3 rounded-xl"
         >
-          <Plus size={18} /> Ajouter un parent
+          Ajouter un parent
         </button>
+
+        {/* FORMULAIRE D'AJOUT DE PARENT */}
+        {showAddParentForm && (
+          <div className="border p-4 rounded-xl bg-gray-50">
+            <h3 className="text-lg font-bold mb-4">Ajouter un parent</h3>
+
+            <div className="grid md:grid-cols-3 gap-3">
+              <EditableField
+                label="Nom"
+                value={newParent.name}
+                onChange={(v) => setNewParent((prev) => ({ ...prev, name: v }))}
+              />
+
+              <EditableField
+                label="Prénom"
+                value={newParent.first_name}
+                onChange={(v) => setNewParent((prev) => ({ ...prev, first_name: v }))}
+              />
+
+              <EditableField
+                label="Relation"
+                value={newParent.relationship}
+                onChange={(v) => setNewParent((prev) => ({ ...prev, relationship: v }))}
+              />
+            </div>
+
+            <div className="flex flex-col md:flex-row justify-end mt-4 gap-2">
+              <button
+                onClick={() => handleSaveParent(newParent)}
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
+              >
+                Sauvegarder
+              </button>
+              <button
+                onClick={handleCancelAddParent}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </Section>
   );

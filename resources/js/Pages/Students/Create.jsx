@@ -166,16 +166,20 @@ export default function StudentCreate() {
         "school_class_id"
       ];
 
-      fields.forEach((field) => {
+        fields.forEach((field) => {
         if (field === "school_class_id") {
-          // Handle school_class_id specifically - don't append if null
-          if (student[field] !== null && student[field] !== undefined) {
+            // Handle school_class_id specifically - don't append if null
+            if (student[field] !== null && student[field] !== undefined) {
             formData.append(field, student[field]);
-          }
+            }
+
+        } else if (field === "previous_class") {
+            formData.append("previous_class", student.previous_level);
+
         } else {
-          formData.append(field, student[field] ?? "");
+            formData.append(field, student[field] ?? "");
         }
-      });
+        });
 
       // documents
       formData.append("birth_certificate", student.birth_certificate ? 1 : 0);
@@ -190,6 +194,9 @@ export default function StudentCreate() {
 
       // paiement
       formData.append("registration_status", student.registration_status);
+
+      // special_needs
+      formData.append("special_needs", student.special_needs);
 
       // mois payés
       if (Array.isArray(student.paid_months) && student.paid_months.length > 0) {

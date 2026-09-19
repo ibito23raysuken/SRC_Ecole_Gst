@@ -11,7 +11,7 @@ export default function DocumentsSection({ student, handleChange, errors }) {
 
   return (
     <div className="bg-white p-4 lg:p-6 rounded-xl shadow-sm border border-gray-100">
-      <h2 className="text-lg lg:text-xl font-bold text-gray-800 mb-4 lg:mb-6 pb-2 border-b border-gray-200">
+      <h2 className="text-lg lg:text-xl font-bold text-gray-800 mb-4 lg:mb-6 pb-2 border-b text-3xl font-bold text-red-800">
         Documents fournis
       </h2>
 
