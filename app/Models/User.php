@@ -11,7 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable,HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -22,7 +22,7 @@ class User extends Authenticatable
         'firstName',
         'lastName',
         'password',
-        'role'
+        'role',
     ];
 
     /**
@@ -36,7 +36,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
      * @return array<string, string>
      */
@@ -47,8 +47,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    function students()
+
+    /**
+     * Relation avec les étudiants.
+     */
+    public function students()
     {
         return $this->hasMany(Student::class);
+    }
+
+    /**
+     * Relation avec le profil enseignant.
+     */
+    public function teacher()
+    {
+        return $this->hasOne(Teacher::class);
     }
 }
