@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../../Context/AppContext';
+import api from '../../api/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 export default function SchoolDashboard() {
@@ -15,12 +16,10 @@ export default function SchoolDashboard() {
     const fetchStudents = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:8000/api/students', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const response = await api.get('/students', {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
-        const data = await response.json();
-        setStudents(data);
+        setStudents(Array.isArray(response.data) ? response.data : response.data.data || []);
       } catch (err) {
         setError(err.message);
       } finally {

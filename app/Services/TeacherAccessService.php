@@ -21,7 +21,10 @@ class TeacherAccessService
     {
         return $teacher->assignments()
             ->where('school_class_id', $classId)
-            ->where('subject_id', $subjectId)
+            ->where(function ($query) use ($subjectId) {
+                $query->where('subject_id', $subjectId)
+                    ->orWhereNull('subject_id');
+            })
             ->exists();
     }
 }

@@ -17,7 +17,11 @@ class TeacherClassController extends Controller
             ->groupBy('school_class_id')
             ->map(function ($assignments) {
                 $class = $assignments->first()->schoolClass;
-                $class->setRelation('subjects', $assignments->pluck('subject')->filter()->unique('id')->values());
+                $hasWholeClassAssignment = $assignments->contains(fn ($assignment) => $assignment->subject_id === null);
+                $subjects = $hasWholeClassAssignment
+                    ? $class->subjects()->get()
+                    : $assignments->pluck('subject')->filter()->unique('id')->values();
+                $class->setRelation('subjects', $subjects);
                 return $class;
             })->values();
 

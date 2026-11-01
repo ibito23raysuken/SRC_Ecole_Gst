@@ -10,6 +10,7 @@ class StudentNote extends Model
         'student_id',
         'teacher_id',
         'school_class_id',
+        'academic_year_id',
         'subject_id',
         'period',
         'score',
@@ -26,4 +27,5 @@ class StudentNote extends Model
     public function teacher() { return $this->belongsTo(Teacher::class); }
     public function schoolClass() { return $this->belongsTo(SchoolClass::class); }
     public function subject() { return $this->belongsTo(Subject::class); }
+    public function academicYear() { return $this->belongsTo(AcademicYear::class); }
 }

@@ -26,6 +26,7 @@ class UserFactory extends Factory
         return [
             'firstName' => fake()->unique()->userName(), // Utilisé comme identifiant
             'lastName' => fake()->lastName(),
+            'email' => fake()->unique()->safeEmail(),
             'password' => Hash::make('password'), // mot de passe par défaut
             'role' => 'user', // ou 'admin', selon ton besoin
             'remember_token' => Str::random(10),
