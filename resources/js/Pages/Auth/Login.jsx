@@ -6,7 +6,7 @@ export default function LoginWithFirstName() {
     firstName: '',
     password: ''
   });
-const{token,setToken}=useContext(AppContext);
+const { setToken, setUser } = useContext(AppContext);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -25,6 +25,7 @@ const{token,setToken}=useContext(AppContext);
 
     setIsSubmitting(true);
 
+    try {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: {
@@ -36,17 +37,22 @@ const{token,setToken}=useContext(AppContext);
           password: loginData.password
         })
       });
-const data = await response.json();
-       if (data.errors) {
-      setErrors(data.errors);
-    }else {
+      const data = await response.json();
+      if (!response.ok) {
+        setErrors(data.errors || { firstName: [data.message || 'Connexion impossible.'] });
+        return;
+      }
 
-        localStorage.setItem('token', data.token);
-        setToken(data.token);
-        navigate('/');
-        console.log(data);
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      const authenticatedUser = { ...data.user, role: String(data.user?.role || '').trim().toLowerCase() };
+      setUser(authenticatedUser);
+      navigate(authenticatedUser.role === 'teacher' ? '/teacher' : '/');
+    } catch {
+      setErrors({ firstName: ['Le serveur est momentanément indisponible.'] });
+    } finally {
+      setIsSubmitting(false);
     }
-            setIsSubmitting(false);
 
   };
 

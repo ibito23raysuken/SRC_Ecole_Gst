@@ -21,6 +21,26 @@ class Teacher extends Model
         'photo',
     ];
 
+    public function assignments()
+    {
+        return $this->hasMany(TeacherClassSubject::class);
+    }
+
+    public function assignedClasses()
+    {
+        return $this->belongsToMany(
+            SchoolClass::class,
+            'teacher_class_subjects',
+            'teacher_id',
+            'school_class_id'
+        )->withPivot(['subject_id', 'academic_year_id'])->withTimestamps();
+    }
+
+    public function notes()
+    {
+        return $this->hasMany(StudentNote::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

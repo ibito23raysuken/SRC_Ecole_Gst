@@ -10,6 +10,13 @@ use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\TeacherAssignmentController;
+use App\Http\Controllers\TeacherClassController;
+use App\Http\Controllers\TeacherDashboardController;
+use App\Http\Controllers\TeacherMessageController;
+use App\Http\Controllers\TeacherNoteController;
+use App\Http\Controllers\TeacherProfileController;
+use App\Http\Controllers\TeacherStudentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,7 +25,10 @@ use App\Http\Controllers\ScheduleController;
 */
 
 Route::get('/user', function (Request $request) {
-    return $request->user();
+    $user = $request->user();
+    $user->setAttribute('role', strtolower((string) $user->role));
+
+    return $user;
 })->middleware('auth:sanctum');
 
 
@@ -34,6 +44,27 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth:sanctum');
 
+Route::middleware(['auth:sanctum', 'role:teacher'])->get('/teacher/me', function (Request $request) {
+    return $request->user()->load('teacher')->teacher?->makeHidden(['salary']);
+});
+
+Route::middleware(['auth:sanctum', 'role:teacher'])->prefix('teacher')->group(function () {
+    Route::get('/dashboard', TeacherDashboardController::class);
+    Route::get('/classes', [TeacherClassController::class, 'index']);
+    Route::get('/classes/{classId}', [TeacherClassController::class, 'show']);
+    Route::get('/students', [TeacherStudentController::class, 'index']);
+    Route::get('/students/{studentId}', [TeacherStudentController::class, 'show']);
+    Route::get('/notes', [TeacherNoteController::class, 'index']);
+    Route::post('/notes', [TeacherNoteController::class, 'store']);
+    Route::get('/messages', [TeacherMessageController::class, 'index']);
+    Route::get('/message-recipients', [TeacherMessageController::class, 'recipients']);
+    Route::post('/messages', [TeacherMessageController::class, 'store']);
+    Route::get('/messages/{conversation}', [TeacherMessageController::class, 'show']);
+    Route::post('/messages/{conversation}/reply', [TeacherMessageController::class, 'reply']);
+    Route::get('/profile', [TeacherProfileController::class, 'show']);
+    Route::patch('/profile', [TeacherProfileController::class, 'update']);
+});
+
 
 /*
 |--------------------------------------------------------------------------
@@ -42,7 +73,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 */
 
 Route::apiResource('students', StudentController::class)
-    ->middleware('auth:sanctum');
+    ->middleware(['auth:sanctum', 'role:admin']);
 
 
 /*
@@ -52,7 +83,7 @@ Route::apiResource('students', StudentController::class)
 */
 
 Route::apiResource('teachers', TeacherController::class)
-    ->middleware('auth:sanctum');
+    ->middleware(['auth:sanctum', 'role:admin']);
 
 
 /*
@@ -65,11 +96,11 @@ Route::apiResource('teachers', TeacherController::class)
 Route::get('/school-classes/free', [
     SchoolClassController::class,
     'getFreeClasses'
-])->middleware('auth:sanctum');
+])->middleware(['auth:sanctum', 'role:admin']);
 
 // Routes CRUD des classes
 Route::apiResource('school-classes', SchoolClassController::class)
-    ->middleware('auth:sanctum');
+    ->middleware(['auth:sanctum', 'role:admin']);
 
 /*
 |--------------------------------------------------------------------------
@@ -78,7 +109,7 @@ Route::apiResource('school-classes', SchoolClassController::class)
 */
 
 Route::apiResource('subjects', SubjectController::class)
-    ->middleware('auth:sanctum');
+    ->middleware(['auth:sanctum', 'role:admin']);
 
 
 /*
@@ -87,7 +118,14 @@ Route::apiResource('subjects', SubjectController::class)
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('/admin/messages', [TeacherMessageController::class, 'index']);
+    Route::get('/admin/messages/{conversation}', [TeacherMessageController::class, 'show']);
+    Route::post('/admin/messages/{conversation}/reply', [TeacherMessageController::class, 'reply']);
+
+    Route::post('/teachers/{teacher}/assignments', [TeacherAssignmentController::class, 'store']);
+    Route::delete('/teacher-assignments/{assignment}', [TeacherAssignmentController::class, 'destroy']);
+
 
     // Récupérer les paramètres
     Route::get('/settings', [SettingController::class, 'getSettings']);
@@ -103,7 +141,7 @@ Route::middleware('auth:sanctum')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
     Route::post('/schedules', [ScheduleController::class, 'store']);
 

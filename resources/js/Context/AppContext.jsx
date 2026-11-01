@@ -2,9 +2,14 @@ import { createContext, useEffect, useState } from "react";
 
 export const AppContext = createContext();
 
+function normalizeUser(userData) {
+  if (!userData) return null;
+  return { ...userData, role: String(userData.role || '').trim().toLowerCase() };
+}
+
 export function AppProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // utile pour spinner ou loader
 
   // Met à jour le token dans le localStorage automatiquement
@@ -13,13 +18,17 @@ export function AppProvider({ children }) {
       localStorage.setItem("token", token);
     } else {
       localStorage.removeItem("token");
-      setUser({}); // reset user si pas de token
+      setUser(null);
     }
   }, [token]);
 
   // Récupère l'utilisateur depuis l'API
   async function fetchUser() {
-    if (!token) return setLoading(false);
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
     try {
       const response = await fetch("/api/user", {
         headers: { Authorization: `Bearer ${token}` },
@@ -30,11 +39,11 @@ export function AppProvider({ children }) {
       }
 
       const userData = await response.json();
-      setUser(userData);
+      setUser(normalizeUser(userData));
     } catch (err) {
       console.error(err);
-      setToken(""); // supprime le token invalide
-      setUser({});
+      setToken("");
+      setUser(null);
     } finally {
       setLoading(false);
     }

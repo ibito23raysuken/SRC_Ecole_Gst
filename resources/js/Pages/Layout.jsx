@@ -21,10 +21,9 @@ export default function Layout() {
         console.log(data);
         if (response.ok) {
             // Redirection vers la page de connexion après déconnexion
-            navigate('/');
             setUser(null);
-            setToken(null);
-            localStorage.removeItem('token'); // Supprimer le token du stockage loca
+            setToken('');
+            navigate('/login');
         } else {
             // Gérer les erreurs de déconnexion si nécessaire
             console.error('Logout failed:', data);
@@ -84,7 +83,7 @@ export default function Layout() {
             <main className="flex-grow container mx-auto p-4 md:p-8 border-t-4 border-red-200">
                 <div>
 
-                            {user && user.firstName ? (
+                            {user?.role?.toLowerCase() === 'admin' ? (
                                 <Sidebar />
                             ) : (
                                 <></>

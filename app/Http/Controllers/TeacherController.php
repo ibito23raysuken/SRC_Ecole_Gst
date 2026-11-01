@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Teacher;
+use App\Models\SchoolClass;
+use App\Models\Subject;
+use App\Models\TeacherClassSubject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -17,7 +20,7 @@ class TeacherController extends Controller
      */
     public function index()
     {
-        $teachers = Teacher::with('user')->get();
+        $teachers = Teacher::with(['user', 'assignments.schoolClass', 'assignments.subject'])->get();
 
         return response()->json($teachers);
     }
@@ -83,7 +86,7 @@ public function store(Request $request)
             }
 
             // 3. Créer le profil enseignant associé
-            return Teacher::create([
+            $teacher = Teacher::create([
                 'user_id' => $user->id,
                 'first_name' => $user->firstName,
                 'last_name' => $user->lastName,
@@ -92,7 +95,25 @@ public function store(Request $request)
                 'birth_date' => $validated['birth_date'] ?? null,
                 'salary' => $validated['salary'] ?? null,
                 'photo' => $photo,
-            ])->load('user');
+            ]);
+
+            $schoolClass = $request->filled('current_class')
+                ? SchoolClass::where('name', $request->current_class)->first()
+                : null;
+            $subject = $request->filled('subject') && $schoolClass
+                ? Subject::where('name', $request->subject)->where('class_id', $schoolClass->id)->first()
+                : null;
+
+            if ($schoolClass) {
+                TeacherClassSubject::firstOrCreate([
+                    'teacher_id' => $teacher->id,
+                    'school_class_id' => $schoolClass->id,
+                    'subject_id' => $subject?->id,
+                    'academic_year_id' => $schoolClass->academic_year_id,
+                ]);
+            }
+
+            return $teacher->load('user');
         });
 
         return response()->json([
@@ -122,7 +143,7 @@ public function store(Request $request)
      */
     public function show(string $id)
     {
-        $teacher = Teacher::with('user')->findOrFail($id);
+        $teacher = Teacher::with(['user', 'assignments.schoolClass', 'assignments.subject'])->findOrFail($id);
 
         return response()->json($teacher);
     }

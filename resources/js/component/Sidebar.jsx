@@ -62,6 +62,7 @@ export default function Sidebar() {
       subMenus: [
         { title: "Configurer emploi du temps", path: "/schedule" },
         { title: "Insertion note", path: "/Note" },
+        { title: "Messages enseignants", path: "/admin/messages" },
       ],
     },
     {

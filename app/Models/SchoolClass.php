@@ -37,4 +37,19 @@ class SchoolClass extends Model
     {
         return $this->hasMany(Subject::class, 'class_id');
     }
+
+    public function teacherAssignments()
+    {
+        return $this->hasMany(TeacherClassSubject::class);
+    }
+
+    public function teachers()
+    {
+        return $this->belongsToMany(
+            Teacher::class,
+            'teacher_class_subjects',
+            'school_class_id',
+            'teacher_id'
+        )->withPivot(['subject_id', 'academic_year_id'])->withTimestamps();
+    }
 }

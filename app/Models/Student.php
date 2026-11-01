@@ -69,6 +69,11 @@ class Student extends Model
         return $this->belongsTo(SchoolClass::class);
     }
 
+    public function notes()
+    {
+        return $this->hasMany(StudentNote::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | BOOT - suppression cascade
