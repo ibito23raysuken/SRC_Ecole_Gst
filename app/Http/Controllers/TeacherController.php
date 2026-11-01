@@ -25,118 +25,97 @@ class TeacherController extends Controller
     /**
      * Créer un enseignant
      */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'first_name' => [
-                'required',
-                'string',
-                'max:255',
-                'unique:users,firstName',
-            ],
 
-            'last_name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
+/**
+ * Créer un enseignant et son compte utilisateur
+ */
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'first_name' => [
+            'required',
+            'string',
+            'max:191',
+            'unique:users,firstName',
+        ],
 
-            'password' => [
-                'required',
-                'string',
-                'min:8',
-                'confirmed',
-            ],
+        'last_name' => [
+            'required',
+            'string',
+            'max:191',
+        ],
 
-            'phone' => 'nullable|string|max:30',
-            'country_code' => 'nullable|string|max:10',
+        'password' => [
+            'required',
+            'string',
+            'min:8',
+            'confirmed',
+        ],
 
-            'subject' => 'nullable|string|max:255',
-            'birth_date' => 'nullable|date',
-            'salary' => 'nullable|numeric|min:0',
+        'phone' => 'nullable|string|max:30',
+        'country_code' => 'nullable|string|max:10',
+        'subject' => 'nullable|string|max:255',
+        'birth_date' => 'nullable|date|before:today',
+        'salary' => 'nullable|numeric|min:0',
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
 
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+    $photo = null;
 
-        $photo = null;
-
-        DB::beginTransaction();
-
-        try {
-
-            /*
-            |--------------------------------------------------------------------------
-            | 1. Créer le compte User
-            |--------------------------------------------------------------------------
-            */
-
+    try {
+        $teacher = DB::transaction(function () use (
+            $request,
+            $validated,
+            &$photo
+        ) {
+            // 1. Créer le compte utilisateur
             $user = User::create([
-                'firstName' => $request->first_name,
-                'lastName' => $request->last_name,
-                'password' => Hash::make($request->password),
+                'firstName' => $validated['first_name'],
+                'lastName' => $validated['last_name'],
+                'password' => Hash::make($validated['password']),
                 'role' => 'teacher',
             ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | 2. Enregistrer la photo
-            |--------------------------------------------------------------------------
-            */
-
+            // 2. Enregistrer la photo
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo')
                     ->store('teachers', 'public');
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | 3. Créer le profil Teacher lié au User
-            |--------------------------------------------------------------------------
-            */
-
-            $teacher = Teacher::create([
+            // 3. Créer le profil enseignant associé
+            return Teacher::create([
                 'user_id' => $user->id,
-
-                'phone' => $request->phone,
-                'subject' => $request->subject,
-                'birth_date' => $request->birth_date,
-                'salary' => $request->salary,
+                'first_name' => $user->firstName,
+                'last_name' => $user->lastName,
+                'phone' => $validated['phone'] ?? null,
+                'subject' => $validated['subject'] ?? null,
+                'birth_date' => $validated['birth_date'] ?? null,
+                'salary' => $validated['salary'] ?? null,
                 'photo' => $photo,
-            ]);
+            ])->load('user');
+        });
 
-            DB::commit();
+        return response()->json([
+            'message' => 'Enseignant créé avec succès.',
+            'teacher' => $teacher,
+        ], 201);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Réponse
-            |--------------------------------------------------------------------------
-            */
-
-            return response()->json([
-                'message' => 'Enseignant créé avec succès.',
-
-                'teacher' => $teacher->load('user'),
-            ], 201);
-
-        } catch (\Throwable $e) {
-
-            DB::rollBack();
-
-            /*
-            | Si une photo a déjà été enregistrée mais que la création échoue,
-            | on supprime la photo.
-            */
-
-            if ($photo) {
-                Storage::disk('public')->delete($photo);
-            }
-
-            return response()->json([
-                'message' => 'Erreur lors de la création de l’enseignant.',
-                'error' => $e->getMessage(),
-            ], 500);
+    } catch (\Throwable $e) {
+        if ($photo) {
+            Storage::disk('public')->delete($photo);
         }
+
+        report($e);
+
+        return response()->json([
+            'message' => 'Erreur lors de la création de l’enseignant.',
+            'error' => config('app.debug')
+                ? $e->getMessage()
+                : 'Une erreur interne est survenue.',
+        ], 500);
     }
+}
+
 
     /**
      * Afficher un enseignant

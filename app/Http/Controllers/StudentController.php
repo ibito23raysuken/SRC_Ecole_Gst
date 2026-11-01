@@ -86,12 +86,12 @@ class StudentController extends Controller implements HasMiddleware
                 ], 409); // 409 = conflit
             }
         // Gestion de l’image
-        if ($request->hasFile('profile_photo')) {
-            $fileNameWithExt = $request->file('profile_photo')->getClientOriginalName();
+        if ($request->hasFile('student_image')) {
+            $fileNameWithExt = $request->file('student_image')->getClientOriginalName();
             $fileName = pathinfo($fileNameWithExt, PATHINFO_FILENAME);
-            $extension = $request->file('profile_photo')->getClientOriginalExtension();
+            $extension = $request->file('student_image')->getClientOriginalExtension();
             $fileNameToStore = $fileName.'_'.time().'.'.$extension;
-            $path = $request->file('profile_photo')->storeAs('profile_photo', $fileNameToStore);
+            $path = $request->file('student_image')->storeAs('student_images', $fileNameToStore);
         } else {
             $path = 'profile_photo/noimage.png';
         }
