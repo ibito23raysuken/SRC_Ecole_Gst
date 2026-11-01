@@ -1,232 +1,67 @@
-import { useState, useEffect, useContext } from 'react';
-import { Link } from 'react-router-dom';
-import { AppContext } from '../../Context/AppContext';
-import { getAllStudentsApi } from '../../api/apistudents';
-import { Trash2, Eye } from 'lucide-react';
-import { Toaster, toast } from 'react-hot-toast';
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Toaster, toast } from "react-hot-toast";
+import { AppContext } from "../../Context/AppContext";
+import { deleteStudentApi, getAllStudentsApi } from "../../api/apistudents";
+import { getAllSchoolClassesApi } from "../../api/apiSchoolClasses";
+import { getAcademicYearsApi } from "../../api/academicYearApi";
+import StudentFilters from "./StudentFilters";
+import StudentStats from "./StudentStats";
+import StudentTable from "./StudentTable";
+import StudentPagination from "./StudentPagination";
+
+const initialFilters = { search: "", school_class_id: "", academic_year_id: "", month: "", payment_status: "", fee_type: "all", balance_min: "", balance_max: "", paid_state: "", sort: "last_name", direction: "asc" };
+const emptyStats = { total: 0, paid: 0, unpaid: 0, partial: 0, total_balance: 0 };
 
 export default function StudentList() {
   const { token } = useContext(AppContext);
-
+  const [filters, setFilters] = useState(initialFilters);
   const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [academicYears, setAcademicYears] = useState([]);
+  const [stats, setStats] = useState(emptyStats);
+  const [meta, setMeta] = useState(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [studentToDelete, setStudentToDelete] = useState(null);
 
-  const studentsPerPage = 8;
-
-  // 🔄 FETCH
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const data = await getAllStudentsApi(token);
-        setStudents(data);
-      } catch (err) {
-        toast.error("Erreur de chargement");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStudents();
+    if (!token) return;
+    Promise.all([getAllSchoolClassesApi(token), getAcademicYearsApi(token)])
+      .then(([loadedClasses, loadedYears]) => { setClasses(loadedClasses); setAcademicYears(loadedYears); })
+      .catch(() => toast.error("Impossible de charger les filtres scolaires."));
   }, [token]);
 
-  // 🔍 FILTER
-  const filteredStudents = students.filter((s) => {
-    const search = searchTerm.toLowerCase();
-    const fullName = `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase();
-
-    return (
-      fullName.includes(search) ||
-      (s.grade_level && s.grade_level.toLowerCase().includes(search))
-    );
-  });
-
-  // 📄 PAGINATION
-  const indexLast = currentPage * studentsPerPage;
-  const currentStudents = filteredStudents.slice(indexLast - studentsPerPage, indexLast);
-  const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
-
-  // ❌ DELETE
-  const confirmDelete = async () => {
+  const queryParams = useMemo(() => Object.fromEntries(Object.entries({ ...filters, page, per_page: 8 }).filter(([, value]) => value !== "" && value !== null && value !== undefined)), [filters, page]);
+  const loadStudents = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
     try {
-      const res = await fetch(`/api/students/${studentToDelete}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await getAllStudentsApi(queryParams);
+      setStudents(response.data || []); setMeta(response.meta || null); setStats(response.meta?.stats || emptyStats);
+    } catch (error) { toast.error(error.response?.data?.message || "Erreur de chargement des élèves."); }
+    finally { setLoading(false); }
+  }, [queryParams, token]);
 
-      if (!res.ok) throw new Error();
+  useEffect(() => { loadStudents(); }, [loadStudents]);
 
-      setStudents((prev) => prev.filter((s) => s.id !== studentToDelete));
-      toast.success("Étudiant supprimé ✅");
-    } catch (err) {
-      toast.error("Erreur lors de la suppression ❌");
-    } finally {
-      setStudentToDelete(null);
-    }
+  const updateFilter = (key, value) => { setFilters((current) => ({ ...current, [key]: value })); setPage(1); };
+  const resetFilters = () => { setFilters(initialFilters); setPage(1); };
+  const removeFilter = (key) => updateFilter(key, key === "fee_type" ? "all" : "");
+  const setStatus = (status) => { setFilters((current) => ({ ...current, payment_status: status, paid_state: "" })); setPage(1); };
+  const sortBy = (sort) => { setFilters((current) => ({ ...current, sort, direction: current.sort === sort && current.direction === "asc" ? "desc" : "asc" })); setPage(1); };
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
+    try { await deleteStudentApi(studentToDelete); toast.success("Élève supprimé avec succès."); setStudentToDelete(null); await loadStudents(); }
+    catch (error) { toast.error(error.response?.data?.message || "Erreur lors de la suppression."); }
   };
 
-  return (
-    <div className="min-h-screen bg-red-50 p-6">
-
-      {/* 🔥 TOAST */}
-      <Toaster position="top-right" />
-
-      <div className="max-w-6xl mx-auto">
-
-        {/* HEADER */}
-        <div className="flex justify-between mb-6">
-          <h1 className="text-3xl font-bold text-red-800">
-            Liste des Élèves
-          </h1>
-
-          <Link
-            to="/students/create"
-            className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg"
-          >
-            + Ajouter
-          </Link>
-        </div>
-
-        {/* SEARCH */}
-        <input
-          type="text"
-          placeholder="Rechercher un élève..."
-          className="w-full p-3 mb-6 border rounded-lg focus:ring-2 focus:ring-red-200"
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-
-        {/* TABLE */}
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-red-50">
-              <tr>
-                <th className="p-3 text-left">Nom</th>
-                <th className="p-3 text-left">Prénom</th>
-                <th className="p-3 text-center">Classe</th>
-                <th className="p-3 text-center">Année</th>
-                <th className="p-3 text-right">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="5" className="text-center p-6">
-                    Chargement...
-                  </td>
-                </tr>
-              ) : currentStudents.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="text-center p-6 text-gray-500">
-                    Aucun élève trouvé
-                  </td>
-                </tr>
-              ) : (
-                currentStudents.map((student) => (
-                  <tr key={student.id} className="hover:bg-red-50 transition">
-
-                    <td className="p-3">{student.last_name}</td>
-                    <td className="p-3">{student.first_name}</td>
-                    <td className="p-3 text-center">{student.school_class?.name || "Non assigné"}</td>
-                    <td className="p-3 text-center">{student.academic_year}</td>
-
-                    <td className="p-3 flex justify-end gap-4">
-
-                      {/* 👁️ VOIR */}
-                      <Link
-                        to={`/students/${student.id}`}
-                        className="group flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-50 transition"
-                      >
-                        <Eye className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition" />
-
-                        <span className="max-w-0 overflow-hidden opacity-0
-                          group-hover:max-w-[80px] group-hover:opacity-100
-                          transition-all duration-300 text-blue-600 text-sm whitespace-nowrap">
-                          Voir
-                        </span>
-                      </Link>
-
-                      {/* 🗑️ SUPPRIMER */}
-                      <button
-                        onClick={() => setStudentToDelete(student.id)}
-                        className="group flex items-center gap-1 px-2 py-1 rounded hover:bg-red-50 transition"
-                      >
-                        <Trash2 className="w-5 h-5 text-gray-600 group-hover:text-red-600 transition" />
-
-                        <span className="max-w-0 overflow-hidden opacity-0
-                          group-hover:max-w-[100px] group-hover:opacity-100
-                          transition-all duration-300 text-red-600 text-sm whitespace-nowrap">
-                          Supprimer
-                        </span>
-                      </button>
-
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* PAGINATION */}
-        <div className="flex justify-between mt-6">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-4 py-2 rounded bg-gray-200 disabled:opacity-50"
-          >
-            Précédent
-          </button>
-
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 rounded bg-gray-200 disabled:opacity-50"
-          >
-            Suivant
-          </button>
-        </div>
-      </div>
-
-      {/* 🔥 MODAL */}
-      {studentToDelete && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-
-          <div className="bg-white rounded-2xl p-6 w-96 shadow-xl">
-
-            <h2 className="text-xl font-bold text-red-700 mb-2">
-              Supprimer cet étudiant ?
-            </h2>
-
-            <p className="text-gray-600 mb-6">
-              Cette action est irréversible.
-            </p>
-
-            <div className="flex justify-end gap-3">
-
-              <button
-                onClick={() => setStudentToDelete(null)}
-                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
-              >
-                Annuler
-              </button>
-
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
-              >
-                Supprimer
-              </button>
-
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
+  return <div className="min-h-screen bg-gray-100 p-4 md:p-6"><Toaster position="top-right" /><div className="mx-auto max-w-7xl">
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold text-gray-800 md:text-3xl">Liste des élèves</h1><p className="mt-1 text-sm text-gray-500">Recherche et suivi des paiements avec les données disponibles.</p></div><Link to="/students/create" className="rounded-lg bg-red-600 px-5 py-2.5 font-medium text-white shadow-sm hover:bg-red-700">+ Ajouter un élève</Link></div>
+    <StudentStats stats={stats} onStatus={setStatus} />
+    <StudentFilters filters={filters} classes={classes} academicYears={academicYears} onChange={updateFilter} onApply={() => setPage(1)} onReset={resetFilters} onRemove={removeFilter} />
+    <div className="mb-3 text-sm text-gray-500">{meta?.total ?? 0} résultat{(meta?.total ?? 0) > 1 ? "s" : ""}</div>
+    <StudentTable students={students} loading={loading} onDelete={setStudentToDelete} onSort={sortBy} sort={filters.sort} direction={filters.direction} /><StudentPagination meta={meta} onPage={setPage} />
+  </div>{studentToDelete && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"><div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"><h2 className="text-xl font-bold text-red-700">Supprimer cet élève ?</h2><p className="my-4 text-gray-600">Cette action est irréversible.</p><div className="flex justify-end gap-3"><button type="button" onClick={() => setStudentToDelete(null)} className="rounded-lg bg-gray-200 px-4 py-2 hover:bg-gray-300">Annuler</button><button type="button" onClick={confirmDelete} className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700">Supprimer</button></div></div></div>}</div>;
 }

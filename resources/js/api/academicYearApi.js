@@ -26,7 +26,15 @@ export async function getSettingsApi(token) {
  * 📋 GET ACADEMIC YEAR (compatibilité ancien code)
  */
 export async function getAcademicYearsApi(token) {
-  return await getSettingsApi(token);
+  try {
+    const response = await api.get("/academic-years", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data?.data || response.data || [];
+  } catch (error) {
+    console.error("Erreur getAcademicYearsApi:", error);
+    return [];
+  }
 }
 
 /**

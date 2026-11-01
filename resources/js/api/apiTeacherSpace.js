@@ -8,11 +8,23 @@ export const getTeacherNotesApi = (params) => api.get('/teacher/notes', { params
 export const saveTeacherNoteApi = (data) => api.post('/teacher/notes', data).then((response) => response.data);
 export const getTeacherMessagesApi = () => api.get('/teacher/messages').then((response) => response.data);
 export const getTeacherMessageRecipientsApi = () => api.get('/teacher/message-recipients').then((response) => response.data);
-export const sendTeacherMessageApi = (data) => api.post('/teacher/messages', data).then((response) => response.data);
+const messageBody = (data) => {
+  if (!(data?.attachment instanceof File)) return data;
+  const body = new FormData();
+  Object.entries(data).forEach(([key, value]) => value !== undefined && value !== null && body.append(key, value));
+  return body;
+};
+export const sendTeacherMessageApi = (data) => api.post('/teacher/messages', messageBody(data)).then((response) => response.data);
 export const getTeacherConversationApi = (id) => api.get(`/teacher/messages/${id}`).then((response) => response.data);
-export const replyTeacherMessageApi = (id, data) => api.post(`/teacher/messages/${id}/reply`, data).then((response) => response.data);
+export const replyTeacherMessageApi = (id, data) => api.post(`/teacher/messages/${id}/reply`, messageBody(data)).then((response) => response.data);
 export const getAdminMessagesApi = () => api.get('/admin/messages').then((response) => response.data);
+export const getAdminMessageRecipientsApi = () => api.get('/admin/message-recipients').then((response) => response.data);
+export const sendAdminMessageApi = (data) => api.post('/admin/messages', messageBody(data)).then((response) => response.data);
 export const getAdminConversationApi = (id) => api.get(`/admin/messages/${id}`).then((response) => response.data);
-export const replyAdminMessageApi = (id, data) => api.post(`/admin/messages/${id}/reply`, data).then((response) => response.data);
+export const replyAdminMessageApi = (id, data) => api.post(`/admin/messages/${id}/reply`, messageBody(data)).then((response) => response.data);
+export const getTeacherUnreadMessageCountApi = () => api.get('/teacher/messages/unread-count').then((response) => response.data.count);
+const saveDownload = (response, name) => { const url = URL.createObjectURL(response.data); const link = document.createElement('a'); link.href = url; link.download = name; link.click(); URL.revokeObjectURL(url); };
+export const downloadTeacherAttachmentApi = (messageId, attachmentId, name) => api.get(`/teacher/messages/${messageId}/attachments/${attachmentId}`, { responseType: 'blob' }).then((response) => saveDownload(response, name));
+export const downloadAdminAttachmentApi = (messageId, attachmentId, name) => api.get(`/admin/messages/${messageId}/attachments/${attachmentId}`, { responseType: 'blob' }).then((response) => saveDownload(response, name));
 export const getTeacherProfileApi = () => api.get('/teacher/profile').then((response) => response.data);
 export const updateTeacherProfileApi = (data) => api.patch('/teacher/profile', data).then((response) => response.data);

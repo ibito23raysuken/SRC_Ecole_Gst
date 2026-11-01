@@ -3,9 +3,9 @@ import api from "./api";
 /**
  * 📋 GET ALL
  */
-export const getStudentsApi = async () => {
-  const res = await api.get("/students");
-  return res.data.data || res.data;
+export const getStudentsApi = async (params = {}) => {
+  const res = await api.get("/students", { params });
+  return res.data;
 };
 
 /**

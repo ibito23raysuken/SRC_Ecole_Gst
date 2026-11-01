@@ -17,6 +17,7 @@ use App\Http\Controllers\TeacherMessageController;
 use App\Http\Controllers\TeacherNoteController;
 use App\Http\Controllers\TeacherProfileController;
 use App\Http\Controllers\TeacherStudentController;
+use App\Models\AcademicYear;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,10 +58,12 @@ Route::middleware(['auth:sanctum', 'role:teacher'])->prefix('teacher')->group(fu
     Route::get('/notes', [TeacherNoteController::class, 'index']);
     Route::post('/notes', [TeacherNoteController::class, 'store']);
     Route::get('/messages', [TeacherMessageController::class, 'index']);
-    Route::get('/message-recipients', [TeacherMessageController::class, 'recipients']);
+    Route::get('/message-recipients', [TeacherMessageController::class, 'contacts']);
+    Route::get('/messages/unread-count', [TeacherMessageController::class, 'unreadCount']);
     Route::post('/messages', [TeacherMessageController::class, 'store']);
     Route::get('/messages/{conversation}', [TeacherMessageController::class, 'show']);
     Route::post('/messages/{conversation}/reply', [TeacherMessageController::class, 'reply']);
+    Route::get('/messages/{message}/attachments/{attachment}', [TeacherMessageController::class, 'downloadAttachment']);
     Route::get('/profile', [TeacherProfileController::class, 'show']);
     Route::patch('/profile', [TeacherProfileController::class, 'update']);
 });
@@ -74,6 +77,13 @@ Route::middleware(['auth:sanctum', 'role:teacher'])->prefix('teacher')->group(fu
 
 Route::apiResource('students', StudentController::class)
     ->middleware(['auth:sanctum', 'role:admin']);
+
+Route::get('/academic-years', function () {
+    return AcademicYear::query()
+        ->orderByDesc('start_date')
+        ->orderByDesc('name')
+        ->get(['id', 'name', 'start_date', 'end_date', 'is_active']);
+})->middleware(['auth:sanctum', 'role:admin']);
 
 
 /*
@@ -120,8 +130,12 @@ Route::apiResource('subjects', SubjectController::class)
 
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/admin/messages', [TeacherMessageController::class, 'index']);
+    Route::get('/admin/message-recipients', [TeacherMessageController::class, 'contacts']);
+    Route::get('/admin/messages/unread-count', [TeacherMessageController::class, 'unreadCount']);
+    Route::post('/admin/messages', [TeacherMessageController::class, 'store']);
     Route::get('/admin/messages/{conversation}', [TeacherMessageController::class, 'show']);
     Route::post('/admin/messages/{conversation}/reply', [TeacherMessageController::class, 'reply']);
+    Route::get('/admin/messages/{message}/attachments/{attachment}', [TeacherMessageController::class, 'downloadAttachment']);
 
     Route::post('/teachers/{teacher}/assignments', [TeacherAssignmentController::class, 'store']);
     Route::delete('/teacher-assignments/{assignment}', [TeacherAssignmentController::class, 'destroy']);

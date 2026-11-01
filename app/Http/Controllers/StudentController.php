@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Guardian;
+use App\Models\Setting;
 use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Gate;
@@ -24,10 +26,219 @@ class StudentController extends Controller implements HasMiddleware
     /**
      * Display a listing of the resource.
      */
-    public function index(){
-         return Student::with(['guardians', 'schoolClass' => function($query) {
-             $query->withCount('students');
-         }])->get();
+    public function index(Request $request)
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'school_class_id' => ['nullable', 'integer', 'exists:school_classes,id'],
+            'academic_year_id' => ['nullable', 'integer', 'exists:academic_years,id'],
+            'academic_year' => ['nullable', 'integer'],
+            'month' => ['nullable', 'integer', 'between:1,12'],
+            'payment_status' => ['nullable', 'in:paid,unpaid,partial,overdue'],
+            'fee_type' => ['nullable', 'in:all,registration,monthly'],
+            'balance_min' => ['nullable', 'numeric', 'min:0'],
+            'balance_max' => ['nullable', 'numeric', 'min:0'],
+            'paid_state' => ['nullable', 'in:has_balance,paid,nothing_paid'],
+            'sort' => ['nullable', 'in:last_name,first_name,school_class,academic_year,amount_paid,balance,payment_status'],
+            'direction' => ['nullable', 'in:asc,desc'],
+            'per_page' => ['nullable', 'integer', 'between:1,100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $query = Student::query()
+            ->with([
+                'guardians',
+                'schoolClass.academicYear',
+                'inscriptions.ecolages.payments',
+            ])
+            ->with(['schoolClass' => fn ($classQuery) => $classQuery->withCount('students')]);
+
+        if (!empty($validated['search'])) {
+            $search = $validated['search'];
+            $query->where(function ($studentQuery) use ($search) {
+                $studentQuery
+                    ->whereRaw('LOWER(first_name) LIKE ?', ['%' . mb_strtolower($search) . '%'])
+                    ->orWhereRaw('LOWER(last_name) LIKE ?', ['%' . mb_strtolower($search) . '%'])
+                    ->orWhereHas('schoolClass', fn ($classQuery) =>
+                        $classQuery->whereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($search) . '%']))
+                    ->orWhereHas('guardians', fn ($guardianQuery) =>
+                        $guardianQuery->where('phone', 'like', "%{$search}%"));
+            });
+        }
+
+        if (!empty($validated['school_class_id'])) {
+            $query->where('school_class_id', $validated['school_class_id']);
+        }
+
+        if (!empty($validated['academic_year_id'])) {
+            $academicYearId = $validated['academic_year_id'];
+            $query->where(function ($studentQuery) use ($academicYearId) {
+                $studentQuery
+                    ->whereHas('schoolClass', fn ($classQuery) =>
+                        $classQuery->where('academic_year_id', $academicYearId))
+                    ->orWhereHas('inscriptions', fn ($inscriptionQuery) =>
+                        $inscriptionQuery->where('academic_year_id', $academicYearId));
+            });
+        }
+
+        if (array_key_exists('academic_year', $validated)) {
+            $query->where('academic_year', $validated['academic_year']);
+        }
+
+        $students = $query->get();
+        $settings = Setting::query()->first();
+        $feeType = $validated['fee_type'] ?? 'all';
+
+        $rows = $students->map(function (Student $student) use ($validated, $settings, $feeType) {
+            $summary = $this->paymentSummary($student, $validated, $settings, $feeType);
+            $student->setAttribute('payment_summary', $summary);
+            return $student;
+        });
+
+        // Ces filtres dépendent de montants agrégés provenant de plusieurs tables.
+        // Ils sont appliqués après l'agrégation afin de ne jamais inventer un statut.
+        if ($feeType !== 'all') {
+            $rows = $rows->filter(fn (Student $student) =>
+                $student->payment_summary['fee_type_due'] > 0);
+        }
+
+        // Avec un mois sélectionné, ne conserver que les élèves qui ont une
+        // échéance d'inscription ou d'écolage sur ce mois.
+        if (!empty($validated['month'])) {
+            $rows = $rows->filter(fn (Student $student) =>
+                $student->payment_summary['amount_due'] > 0);
+        }
+
+        $stats = $this->paymentStats($rows);
+
+        if (!empty($validated['payment_status'])) {
+            $rows = $rows->filter(fn (Student $student) =>
+                ($student->payment_summary['status'] ?? null) === $validated['payment_status']);
+        }
+
+        if (!empty($validated['paid_state'])) {
+            $rows = $rows->filter(function (Student $student) use ($validated) {
+                $summary = $student->payment_summary;
+                return match ($validated['paid_state']) {
+                    'has_balance' => $summary['balance'] > 0,
+                    'paid' => $summary['balance'] <= 0 && $summary['amount_due'] > 0,
+                    'nothing_paid' => $summary['amount_paid'] <= 0,
+                };
+            });
+        }
+
+        if (array_key_exists('balance_min', $validated)) {
+            $rows = $rows->filter(fn (Student $student) =>
+                $student->payment_summary['balance'] >= (float) $validated['balance_min']);
+        }
+
+        if (array_key_exists('balance_max', $validated)) {
+            $rows = $rows->filter(fn (Student $student) =>
+                $student->payment_summary['balance'] <= (float) $validated['balance_max']);
+        }
+
+        $sort = $validated['sort'] ?? 'last_name';
+        $direction = ($validated['direction'] ?? 'asc') === 'desc' ? -1 : 1;
+        $rows = $rows->sort(function (Student $left, Student $right) use ($sort, $direction) {
+            $leftValue = match ($sort) {
+                'first_name' => $left->first_name,
+                'school_class' => $left->schoolClass?->name,
+                'academic_year' => $left->academic_year,
+                'amount_paid' => $left->payment_summary['amount_paid'],
+                'balance' => $left->payment_summary['balance'],
+                'payment_status' => $left->payment_summary['status'] ?? '',
+                default => $left->last_name,
+            };
+            $rightValue = match ($sort) {
+                'first_name' => $right->first_name,
+                'school_class' => $right->schoolClass?->name,
+                'academic_year' => $right->academic_year,
+                'amount_paid' => $right->payment_summary['amount_paid'],
+                'balance' => $right->payment_summary['balance'],
+                'payment_status' => $right->payment_summary['status'] ?? '',
+                default => $right->last_name,
+            };
+            return $direction * strnatcasecmp((string) $leftValue, (string) $rightValue);
+        })->values();
+
+        $perPage = (int) ($validated['per_page'] ?? 8);
+        $page = (int) ($validated['page'] ?? 1);
+        $paginator = new LengthAwarePaginator(
+            $rows->forPage($page, $perPage)->values(),
+            $rows->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return response()->json([
+            'data' => $paginator->items(),
+            'meta' => array_merge($paginator->toArray(), ['stats' => $stats]),
+        ]);
+    }
+
+    private function paymentSummary(Student $student, array $filters, ?Setting $settings, string $feeType): array
+    {
+        $inscriptions = $student->inscriptions;
+        if (!empty($filters['academic_year_id'])) {
+            $inscriptions = $inscriptions->where('academic_year_id', $filters['academic_year_id']);
+        }
+
+        $ecolages = $inscriptions->flatMap->ecolages;
+        if (!empty($filters['month'])) {
+            $ecolages = $ecolages->where('month', (int) $filters['month']);
+        }
+
+        $monthlyDue = $feeType === 'registration' ? 0.0 : (float) $ecolages->sum('amount_due');
+        $monthlyPaid = $feeType === 'registration'
+            ? 0.0
+            : (float) $ecolages->flatMap->payments->sum('amount_paid');
+
+        $registrationDue = 0.0;
+        $registrationPaid = 0.0;
+        if ($feeType !== 'monthly') {
+            $registrationMonths = collect($student->registration_months ?? [])->map(fn ($month) => (int) $month);
+            $monthMatchesRegistration = empty($filters['month'])
+                || $registrationMonths->contains((int) $filters['month']);
+            if ($monthMatchesRegistration) {
+                $registrationDue = (float) ($settings?->registration_fee ?? 0);
+                $registrationPaid = match ($student->tuition_payment) {
+                    'full' => $registrationDue,
+                    'half' => $registrationDue / 2,
+                    default => 0.0,
+                };
+            }
+        }
+
+        $amountDue = round($monthlyDue + $registrationDue, 2);
+        $amountPaid = round($monthlyPaid + $registrationPaid, 2);
+        $balance = max(round($amountDue - $amountPaid, 2), 0);
+        $hasOverdue = $feeType === 'registration'
+            ? false
+            : $ecolages->contains(fn ($ecolage) => $ecolage->status === 'overdue');
+        $status = $amountDue <= 0 ? null : ($balance <= 0 ? 'paid' : ($amountPaid <= 0 ? ($hasOverdue ? 'overdue' : 'unpaid') : ($hasOverdue ? 'overdue' : 'partial')));
+
+        return [
+            'status' => $status,
+            'amount_due' => $amountDue,
+            'amount_paid' => $amountPaid,
+            'balance' => $balance,
+            'fee_type_due' => $feeType === 'registration' ? $registrationDue
+                : ($feeType === 'monthly' ? $monthlyDue : $amountDue),
+            'has_payment_data' => $amountDue > 0,
+            'supported_statuses' => ['paid', 'unpaid', 'partial', 'overdue'],
+        ];
+    }
+
+    private function paymentStats($rows): array
+    {
+        return [
+            'total' => $rows->count(),
+            'paid' => $rows->filter(fn (Student $student) => $student->payment_summary['status'] === 'paid')->count(),
+            'unpaid' => $rows->filter(fn (Student $student) => $student->payment_summary['status'] === 'unpaid')->count(),
+            'partial' => $rows->filter(fn (Student $student) => $student->payment_summary['status'] === 'partial')->count(),
+            'total_balance' => round($rows->sum(fn (Student $student) => $student->payment_summary['balance']), 2),
+        ];
     }
 
     /**

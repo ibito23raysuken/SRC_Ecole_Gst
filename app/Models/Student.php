@@ -74,6 +74,11 @@ class Student extends Model
         return $this->hasMany(StudentNote::class);
     }
 
+    public function inscriptions()
+    {
+        return $this->hasMany(Inscription::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | BOOT - suppression cascade

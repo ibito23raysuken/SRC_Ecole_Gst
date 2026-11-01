@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\StudentNote;
-use App\Models\TeacherConversation;
 use App\Services\TeacherAccessService;
 use Illuminate\Http\Request;
 
@@ -14,11 +13,10 @@ class TeacherDashboardController extends Controller
         $teacher = $access->profile($request->user());
         $classes = $teacher->assignedClasses()->withCount('students')->get()->unique('id')->values();
 
-        $unreadMessages = TeacherConversation::whereHas('participants', function ($query) use ($request) {
-            $query->where('users.id', $request->user()->id);
-        })->whereHas('messages', function ($query) use ($request) {
-            $query->where('sender_id', '!=', $request->user()->id)->whereNull('read_at');
-        })->count();
+        $unreadMessages = \App\Models\TeacherMessage::where('sender_id', '!=', $request->user()->id)
+            ->whereNull('read_at')
+            ->whereHas('conversation.participants', fn ($query) => $query->whereKey($request->user()->id))
+            ->count();
 
         return response()->json([
             'teacher' => $teacher->makeHidden(['salary'])->load('user'),

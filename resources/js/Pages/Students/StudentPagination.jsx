@@ -1,0 +1,4 @@
+export default function StudentPagination({ meta, onPage }) {
+  if (!meta || meta.last_page <= 1) return null;
+  return <div className="mt-5 flex items-center justify-between text-sm text-gray-600"><span>{meta.total} résultat{meta.total > 1 ? "s" : ""}</span><div className="flex gap-2"><button type="button" disabled={meta.current_page <= 1} onClick={() => onPage(meta.current_page - 1)} className="rounded-lg bg-gray-200 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50">Précédent</button><span className="rounded-lg border border-gray-200 px-4 py-2">Page {meta.current_page} / {meta.last_page}</span><button type="button" disabled={meta.current_page >= meta.last_page} onClick={() => onPage(meta.current_page + 1)} className="rounded-lg bg-gray-200 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50">Suivant</button></div></div>;
+}
