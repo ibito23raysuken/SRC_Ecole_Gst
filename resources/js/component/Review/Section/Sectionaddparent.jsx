@@ -21,9 +21,12 @@ export default function SectionParents({ student, updateStudentField }) {
 
     saveTimeout.current = setTimeout(async () => {
       try {
-        const updatedStudent = await updateStudentApi(student.id, {
-          guardians: newParents,
-        });
+        const parents = newParents.map(
+          ({ id, name, relationship, phone, email, profession }) => ({
+            id, name, relationship, phone, email, profession,
+          })
+        );
+        const updatedStudent = await updateStudentApi(student.id, { parents });
         updateStudentField(updatedStudent, "Parents sauvegardés !");
       } catch (error) {
         console.error(error);
@@ -50,14 +53,14 @@ export default function SectionParents({ student, updateStudentField }) {
   // ADD ← FIX : id stable avec crypto.randomUUID()
   // ===============================
   const [showAddParentForm, setShowAddParentForm] = useState(false);
-  const [newParent, setNewParent] = useState({ name: "", first_name: "", relationship: "" });
+  const [newParent, setNewParent] = useState({ name: "", relationship: "", phone: "" });
 
   const handleAddParent = () => {
     setShowAddParentForm(true);
   };
 
   const handleSaveParent = (newParent) => {
-    if (!newParent.name || !newParent.first_name || !newParent.relationship) {
+    if (!newParent.name || !newParent.relationship || !newParent.phone) {
       toast.error("Tous les champs doivent être remplis.");
       return;
     }
@@ -74,7 +77,7 @@ export default function SectionParents({ student, updateStudentField }) {
 
     saveParentsDebounced(newParents);
     setShowAddParentForm(false); // Fermer le formulaire après l'ajout
-    setNewParent({ name: "", first_name: "", relationship: "" }); // Réinitialiser le formulaire
+    setNewParent({ name: "", relationship: "", phone: "" }); // Réinitialiser le formulaire
   };
 
   const handleCancelAddParent = () => {
@@ -140,15 +143,15 @@ export default function SectionParents({ student, updateStudentField }) {
                 />
 
                 <EditableField
-                  label="Prénom"
-                  value={parent.first_name}
-                  onChange={(v) => updateParent(index, { first_name: v })}
-                />
-
-                <EditableField
                   label="Relation"
                   value={parent.relationship}
                   onChange={(v) => updateParent(index, { relationship: v })}
+                />
+
+                <EditableField
+                  label="Téléphone"
+                  value={parent.phone}
+                  onChange={(v) => updateParent(index, { phone: v })}
                 />
 
               </div>
@@ -177,15 +180,15 @@ export default function SectionParents({ student, updateStudentField }) {
               />
 
               <EditableField
-                label="Prénom"
-                value={newParent.first_name}
-                onChange={(v) => setNewParent((prev) => ({ ...prev, first_name: v }))}
-              />
-
-              <EditableField
                 label="Relation"
                 value={newParent.relationship}
                 onChange={(v) => setNewParent((prev) => ({ ...prev, relationship: v }))}
+              />
+
+              <EditableField
+                label="Téléphone"
+                value={newParent.phone}
+                onChange={(v) => setNewParent((prev) => ({ ...prev, phone: v }))}
               />
             </div>
 
