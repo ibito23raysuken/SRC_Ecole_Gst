@@ -6,7 +6,7 @@ import { toast, Toaster } from "react-hot-toast";
 import Header from "../../component/Review/headerReview";
 import PersonalInfoSection from "../../component/Review/Section/sectionpersonal";
 import SectionContact from "../../component/Review/Section/SectionContact";
-import SectionPerformance from "../../component/Review/Section/sectionperformance";
+import SectionPerformance from "../../component/Review/Section/Sectionperformance";
 import SchoolSection from "../../component/Review/Section/SchoolSection";
 import SectionDocuments from "../../component/Review/Section/SectionDocuments";
 import SectionParents from "../../component/Review/Section/Sectionaddparent";
