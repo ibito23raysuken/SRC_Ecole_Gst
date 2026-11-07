@@ -69,11 +69,11 @@ class TeacherAccessTest extends TestCase
 
     private function studentData(int $classId, string $name): array
     {
-        [$firstName, $lastName] = explode(' ', $name, 2);
+        [$first_name, $last_name] = explode(' ', $name, 2);
 
         return [
-            'first_name' => $firstName,
-            'last_name' => $lastName,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
             'birth_date' => '2015-01-01',
             'gender' => 'male',
             'phone' => '00000000',

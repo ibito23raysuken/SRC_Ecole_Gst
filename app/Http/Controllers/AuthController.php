@@ -11,17 +11,18 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $fields = $request->validate([
-            'firstName' => 'required|string|unique:users,firstName|max:255',
-            'lastName' => 'required|string|max:255',
+            'first_name' => 'required|string|unique:users,first_name|max:255',
+            'last_name' => 'required|string|max:255',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
         $user = User::create([
-            'firstName' => $fields['firstName'],
-            'lastName' => $fields['lastName'],
+            'first_name' => $fields['first_name'],
+            'last_name' => $fields['last_name'],
             'password' => Hash::make($fields['password']),
-            'role' => 'user',
         ]);
+        $user->role = 'user';
+        $user->save();
 
         $token = $user->createToken('school-management');
 
@@ -34,18 +35,18 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $fields = $request->validate([
-            'firstName' => 'required|string',
+            'first_name' => 'required|string',
             'password' => 'required|string',
         ]);
 
-        $user = User::where('firstName', $fields['firstName'])->first();
+        $user = User::where('first_name', $fields['first_name'])->first();
         $role = strtolower((string) ($user?->role ?? ''));
 
         if (!$user || !in_array($role, ['admin', 'teacher'], true) || !Hash::check($fields['password'], $user->password)) {
             return response()->json([
                 'message' => 'Le prénom ou le mot de passe est incorrect.',
                 'errors' => [
-                    'firstName' => ['Le prénom ou le mot de passe est incorrect.'],
+                    'first_name' => ['Le prénom ou le mot de passe est incorrect.'],
                 ],
             ], 401);
         }

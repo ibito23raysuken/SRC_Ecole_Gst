@@ -20,9 +20,9 @@ class TeacherMessageController extends Controller
         return response()->json(User::query()
             ->where('role', $allowedRole)
             ->with('teacher:id,user_id,first_name,last_name,photo')
-            ->orderBy('lastName')
-            ->orderBy('firstName')
-            ->get(['id', 'firstName', 'lastName', 'role']));
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get(['id', 'first_name', 'last_name', 'role']));
     }
 
     public function index(Request $request)
@@ -30,11 +30,11 @@ class TeacherMessageController extends Controller
         $userId = $request->user()->id;
         $conversations = TeacherConversation::query()
             ->whereHas('participants', fn ($query) => $query->whereKey($userId))
-            ->with('participants:id,firstName,lastName,role')
+            ->with('participants:id,first_name,last_name,role')
             ->withCount(['messages as unread_count' => fn ($query) => $query
                 ->where('sender_id', '!=', $userId)
                 ->whereNull('read_at')])
-            ->with('latestMessage.sender:id,firstName,lastName')
+            ->with('latestMessage.sender:id,first_name,last_name')
             ->withMax('messages', 'created_at')
             ->orderByDesc('messages_max_created_at')
             ->get();
@@ -87,8 +87,8 @@ class TeacherMessageController extends Controller
         $conversation->messages()->where('sender_id', '!=', $request->user()->id)->whereNull('read_at')->update(['read_at' => now()]);
 
         return response()->json($conversation->load([
-            'participants:id,firstName,lastName,role',
-            'messages' => fn ($query) => $query->with(['sender:id,firstName,lastName', 'attachments'])->oldest(),
+            'participants:id,first_name,last_name,role',
+            'messages' => fn ($query) => $query->with(['sender:id,first_name,last_name', 'attachments'])->oldest(),
         ]));
     }
 

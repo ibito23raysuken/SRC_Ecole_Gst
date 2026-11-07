@@ -6,6 +6,12 @@ import { toast } from "react-hot-toast";
 import { updateStudentApi } from "../../../api/apistudents";
 import { AppContext } from "../../../Context/AppContext";
 
+const RELATIONSHIPS = [
+  { value: "mother", label: "Mère" },
+  { value: "father", label: "Père" },
+  { value: "guardian", label: "Tuteur" },
+];
+
 export default function SectionParents({ student, updateStudentField }) {
   const { token } = useContext(AppContext);
 
@@ -22,8 +28,8 @@ export default function SectionParents({ student, updateStudentField }) {
     saveTimeout.current = setTimeout(async () => {
       try {
         const parents = newParents.map(
-          ({ id, name, relationship, phone, email, profession }) => ({
-            id, name, relationship, phone, email, profession,
+          ({ name, first_name, relationship, phone, email, profession }) => ({
+            name, first_name, relationship, phone, email, profession,
           })
         );
         const updatedStudent = await updateStudentApi(student.id, { parents });
@@ -53,7 +59,7 @@ export default function SectionParents({ student, updateStudentField }) {
   // ADD ← FIX : id stable avec crypto.randomUUID()
   // ===============================
   const [showAddParentForm, setShowAddParentForm] = useState(false);
-  const [newParent, setNewParent] = useState({ name: "", relationship: "", phone: "" });
+  const [newParent, setNewParent] = useState({ name: "", first_name: "", relationship: "", phone: "" });
 
   const handleAddParent = () => {
     setShowAddParentForm(true);
@@ -77,7 +83,7 @@ export default function SectionParents({ student, updateStudentField }) {
 
     saveParentsDebounced(newParents);
     setShowAddParentForm(false); // Fermer le formulaire après l'ajout
-    setNewParent({ name: "", relationship: "", phone: "" }); // Réinitialiser le formulaire
+    setNewParent({ name: "", first_name: "", relationship: "", phone: "" }); // Réinitialiser le formulaire
   };
 
   const handleCancelAddParent = () => {
@@ -134,7 +140,13 @@ export default function SectionParents({ student, updateStudentField }) {
               </div>
 
               {/* FIELDS */}
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid md:grid-cols-4 gap-3">
+
+                <EditableField
+                  label="Prénom"
+                  value={parent.first_name}
+                  onChange={(v) => updateParent(index, { first_name: v })}
+                />
 
                 <EditableField
                   label="Nom"
@@ -142,11 +154,21 @@ export default function SectionParents({ student, updateStudentField }) {
                   onChange={(v) => updateParent(index, { name: v })}
                 />
 
-                <EditableField
-                  label="Relation"
-                  value={parent.relationship}
-                  onChange={(v) => updateParent(index, { relationship: v })}
-                />
+                <label className="flex flex-col gap-1">
+                  <span>Relation</span>
+                  <select
+                    value={parent.relationship || ""}
+                    onChange={(event) =>
+                      updateParent(index, { relationship: event.target.value })
+                    }
+                    className="border rounded-lg px-3 py-2"
+                  >
+                    <option value="">Sélectionnez</option>
+                    {RELATIONSHIPS.map(({ value, label }) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </label>
 
                 <EditableField
                   label="Téléphone"
@@ -172,18 +194,37 @@ export default function SectionParents({ student, updateStudentField }) {
           <div className="border p-4 rounded-xl bg-gray-50">
             <h3 className="text-lg font-bold mb-4">Ajouter un parent</h3>
 
-            <div className="grid md:grid-cols-3 gap-3">
+            <div className="grid md:grid-cols-4 gap-3">
+              <EditableField
+                label="Prénom"
+                value={newParent.first_name}
+                onChange={(v) => setNewParent((prev) => ({ ...prev, first_name: v }))}
+              />
+
               <EditableField
                 label="Nom"
                 value={newParent.name}
                 onChange={(v) => setNewParent((prev) => ({ ...prev, name: v }))}
               />
 
-              <EditableField
-                label="Relation"
-                value={newParent.relationship}
-                onChange={(v) => setNewParent((prev) => ({ ...prev, relationship: v }))}
-              />
+              <label className="flex flex-col gap-1">
+                <span>Relation</span>
+                <select
+                  value={newParent.relationship}
+                  onChange={(event) =>
+                    setNewParent((prev) => ({
+                      ...prev,
+                      relationship: event.target.value,
+                    }))
+                  }
+                  className="border rounded-lg px-3 py-2"
+                >
+                  <option value="">Sélectionnez</option>
+                  {RELATIONSHIPS.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </label>
 
               <EditableField
                 label="Téléphone"

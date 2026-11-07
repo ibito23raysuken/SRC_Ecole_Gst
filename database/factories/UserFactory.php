@@ -24,8 +24,8 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'firstName' => fake()->unique()->userName(), // Utilisé comme identifiant
-            'lastName' => fake()->lastName(),
+            'first_name' => fake()->unique()->userName(), // Utilisé comme identifiant
+            'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
             'password' => Hash::make('password'), // mot de passe par défaut
             'role' => 'user', // ou 'admin', selon ton besoin

@@ -8,8 +8,8 @@ export default function EditableFullName({ student, updateStudentField }) {
   const { token } = useContext(AppContext);
 
   const [editing, setEditing] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [first_name, setFirstName] = useState("");
+  const [last_name, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
 
   // 🔥 état local pour éviter le bug d'affichage
@@ -26,8 +26,8 @@ export default function EditableFullName({ student, updateStudentField }) {
     if (!student?.id) return;
 
     if (
-      firstName.trim() === student.first_name?.trim() &&
-      lastName.trim() === student.last_name?.trim()
+      first_name.trim() === student.first_name?.trim() &&
+      last_name.trim() === student.last_name?.trim()
     ) {
       setEditing(false);
       return;
@@ -37,8 +37,8 @@ export default function EditableFullName({ student, updateStudentField }) {
 
     try {
       const updatedData = {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
       };
 
       const updatedStudent = await updateStudentApi(
@@ -96,14 +96,14 @@ export default function EditableFullName({ student, updateStudentField }) {
         <div className="flex items-center gap-3">
           {/* INPUTS */}
           <input
-            value={firstName}
+            value={first_name}
             onChange={(e) => setFirstName(e.target.value)}
             className="border p-2 rounded w-32"
             placeholder="Prénom"
           />
 
           <input
-            value={lastName}
+            value={last_name}
             onChange={(e) => setLastName(e.target.value)}
             className="border p-2 rounded w-32"
             placeholder="Nom"

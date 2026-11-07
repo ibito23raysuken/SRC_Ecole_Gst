@@ -16,8 +16,8 @@ export const getAllStudentsApi = getStudentsApi;
 /**
  * 🔍 GET ONE
  */
-export const getStudentApi = async (id) => {
-  const res = await api.get(`/students/${id}`);
+export const getStudentApi = async (id, config = {}) => {
+  const res = await api.get(`/students/${id}`, config);
   return res.data.data || res.data;
 };
 

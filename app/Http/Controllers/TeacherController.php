@@ -39,7 +39,7 @@ public function store(Request $request)
             'required',
             'string',
             'max:191',
-            'unique:users,firstName',
+            'unique:users,first_name',
         ],
 
         'last_name' => [
@@ -73,11 +73,12 @@ public function store(Request $request)
         ) {
             // 1. Créer le compte utilisateur
             $user = User::create([
-                'firstName' => $validated['first_name'],
-                'lastName' => $validated['last_name'],
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
                 'password' => Hash::make($validated['password']),
-                'role' => 'teacher',
             ]);
+            $user->role = 'teacher';
+            $user->save();
 
             // 2. Enregistrer la photo
             if ($request->hasFile('photo')) {
@@ -88,8 +89,8 @@ public function store(Request $request)
             // 3. Créer le profil enseignant associé
             $teacher = Teacher::create([
                 'user_id' => $user->id,
-                'first_name' => $user->firstName,
-                'last_name' => $user->lastName,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
                 'phone' => $validated['phone'] ?? null,
                 'subject' => $validated['subject'] ?? null,
                 'birth_date' => $validated['birth_date'] ?? null,
@@ -161,7 +162,7 @@ public function store(Request $request)
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('users', 'firstName')
+                Rule::unique('users', 'first_name')
                     ->ignore($teacher->user_id),
             ],
 
@@ -202,11 +203,11 @@ public function store(Request $request)
             $userData = [];
 
             if ($request->filled('first_name')) {
-                $userData['firstName'] = $request->first_name;
+                $userData['first_name'] = $request->first_name;
             }
 
             if ($request->filled('last_name')) {
-                $userData['lastName'] = $request->last_name;
+                $userData['last_name'] = $request->last_name;
             }
 
             if ($request->filled('password')) {
@@ -348,4 +349,3 @@ public function store(Request $request)
         }
     }
 }
-

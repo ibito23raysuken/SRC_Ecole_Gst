@@ -15,9 +15,7 @@ public function modify(User $user, Student $student): Response
         return Response::allow();
     }
 
-    return $user->id === $student->user_id
-        ? Response::allow()
-        : Response::deny('You do not own this student record.');
+    return Response::deny('You do not own this student record.');
 }
 
 }

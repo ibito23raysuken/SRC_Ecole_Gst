@@ -3,15 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Guardian;
-use App\Models\Setting;
 use App\Models\Student;
+use App\Http\Requests\StoreStudentRequest;
+use App\Http\Requests\UpdateStudentRequest;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use SebastianBergmann\Environment\Console;
 
 class StudentController extends Controller implements HasMiddleware
@@ -45,11 +45,122 @@ class StudentController extends Controller implements HasMiddleware
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        $feeType = $validated['fee_type'] ?? 'all';
+        $month = $validated['month'] ?? null;
+        $academicYearId = $validated['academic_year_id'] ?? null;
+
+        $monthlyDueQuery = DB::table('ecolages')
+            ->join('inscriptions', 'inscriptions.id', '=', 'ecolages.inscription_id')
+            ->whereColumn('inscriptions.student_id', 'students.id')
+            ->when($academicYearId, fn ($query) => $query->where('inscriptions.academic_year_id', $academicYearId))
+            ->when($month, fn ($query) => $query->where('ecolages.month', $month))
+            ->selectRaw('COALESCE(SUM(ecolages.amount_due), 0)');
+
+        $monthlyPaidQuery = DB::table('payments')
+            ->join('ecolages', 'ecolages.id', '=', 'payments.ecolage_id')
+            ->join('inscriptions', 'inscriptions.id', '=', 'ecolages.inscription_id')
+            ->whereColumn('inscriptions.student_id', 'students.id')
+            ->when($academicYearId, fn ($query) => $query->where('inscriptions.academic_year_id', $academicYearId))
+            ->when($month, fn ($query) => $query->where('ecolages.month', $month))
+            ->selectRaw('COALESCE(SUM(payments.amount_paid), 0)');
+
+        $overdueCountQuery = DB::table('ecolages')
+            ->join('inscriptions', 'inscriptions.id', '=', 'ecolages.inscription_id')
+            ->whereColumn('inscriptions.student_id', 'students.id')
+            ->where('ecolages.status', 'overdue')
+            ->when($academicYearId, fn ($query) => $query->where('inscriptions.academic_year_id', $academicYearId))
+            ->when($month, fn ($query) => $query->where('ecolages.month', $month))
+            ->selectRaw('COUNT(*)');
+
+        $paymentDataQuery = DB::table('students')
+            ->select('students.*')
+            ->selectSub($monthlyDueQuery, 'monthly_due_raw')
+            ->selectSub($monthlyPaidQuery, 'monthly_paid_raw')
+            ->selectSub($overdueCountQuery, 'overdue_count')
+            ->selectSub(
+                DB::table('settings')->select('registration_fee')->orderBy('id')->limit(1),
+                'registration_fee'
+            );
+
+        if ($month) {
+            $paymentDataQuery->selectRaw(
+                "EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements_text(
+                        COALESCE(students.registration_months::jsonb, '[]'::jsonb)
+                    ) AS registration_month(value)
+                    WHERE registration_month.value ~ '^[0-9]+$'
+                      AND registration_month.value::integer = ?
+                ) AS registration_month_matches",
+                [(int) $month]
+            );
+        } else {
+            $paymentDataQuery->selectRaw('TRUE AS registration_month_matches');
+        }
+
+        $paymentSummaryBase = DB::query()
+            ->fromSub($paymentDataQuery, 'payment_data')
+            ->select('payment_data.*')
+            ->selectRaw(
+                'CASE WHEN ? = ? THEN 0 ELSE monthly_due_raw END AS monthly_due',
+                [$feeType, 'registration']
+            )
+            ->selectRaw(
+                'CASE WHEN ? = ? THEN 0 ELSE monthly_paid_raw END AS monthly_paid',
+                [$feeType, 'registration']
+            )
+            ->selectRaw(
+                'CASE WHEN ? = ? OR NOT registration_month_matches THEN 0 ELSE COALESCE(registration_fee, 0) END AS registration_due',
+                [$feeType, 'monthly']
+            );
+
+        $paymentTotals = DB::query()
+            ->fromSub($paymentSummaryBase, 'payment_summary_base')
+            ->select('payment_summary_base.*')
+            ->selectRaw(
+                "CASE
+                    WHEN tuition_payment = 'full' THEN registration_due
+                    WHEN tuition_payment = 'half' THEN registration_due / 2
+                    ELSE 0
+                END AS registration_paid"
+            );
+
+        $amountTotals = DB::query()
+            ->fromSub($paymentTotals, 'payment_totals')
+            ->select('payment_totals.*')
+            ->selectRaw('ROUND(monthly_due + registration_due, 2) AS amount_due')
+            ->selectRaw('ROUND(monthly_paid + registration_paid, 2) AS amount_paid')
+            ->selectRaw('GREATEST(ROUND(monthly_due + registration_due - monthly_paid - registration_paid, 2), 0) AS balance')
+            ->selectRaw(
+                "CASE
+                    WHEN ? = 'registration' THEN registration_due
+                    WHEN ? = 'monthly' THEN monthly_due
+                    ELSE ROUND(monthly_due + registration_due, 2)
+                END AS fee_type_due",
+                [$feeType, $feeType]
+            );
+
+        $summaryQuery = DB::query()
+            ->fromSub($amountTotals, 'amount_totals')
+            ->select('amount_totals.*')
+            ->selectRaw(
+                "CASE
+                    WHEN amount_due <= 0 THEN NULL
+                    WHEN balance <= 0 THEN 'paid'
+                    WHEN amount_paid <= 0 AND ? <> 'registration' AND overdue_count > 0 THEN 'overdue'
+                    WHEN amount_paid <= 0 THEN 'unpaid'
+                    WHEN ? <> 'registration' AND overdue_count > 0 THEN 'overdue'
+                    ELSE 'partial'
+                END AS payment_status",
+                [$feeType, $feeType]
+            );
+
         $query = Student::query()
+            ->fromSub($summaryQuery, 'students')
+            ->select('students.*')
             ->with([
                 'guardians',
                 'schoolClass.academicYear',
-                'inscriptions.ecolages.payments',
             ])
             ->with(['schoolClass' => fn ($classQuery) => $classQuery->withCount('students')]);
 
@@ -71,7 +182,6 @@ class StudentController extends Controller implements HasMiddleware
         }
 
         if (!empty($validated['academic_year_id'])) {
-            $academicYearId = $validated['academic_year_id'];
             $query->where(function ($studentQuery) use ($academicYearId) {
                 $studentQuery
                     ->whereHas('schoolClass', fn ($classQuery) =>
@@ -85,210 +195,131 @@ class StudentController extends Controller implements HasMiddleware
             $query->where('academic_year', $validated['academic_year']);
         }
 
-        $students = $query->get();
-        $settings = Setting::query()->first();
-        $feeType = $validated['fee_type'] ?? 'all';
-
-        $rows = $students->map(function (Student $student) use ($validated, $settings, $feeType) {
-            $summary = $this->paymentSummary($student, $validated, $settings, $feeType);
-            $student->setAttribute('payment_summary', $summary);
-            return $student;
-        });
-
-        // Ces filtres dépendent de montants agrégés provenant de plusieurs tables.
-        // Ils sont appliqués après l'agrégation afin de ne jamais inventer un statut.
         if ($feeType !== 'all') {
-            $rows = $rows->filter(fn (Student $student) =>
-                $student->payment_summary['fee_type_due'] > 0);
+            $query->where('students.fee_type_due', '>', 0);
         }
 
-        // Avec un mois sélectionné, ne conserver que les élèves qui ont une
-        // échéance d'inscription ou d'écolage sur ce mois.
-        if (!empty($validated['month'])) {
-            $rows = $rows->filter(fn (Student $student) =>
-                $student->payment_summary['amount_due'] > 0);
+        if ($month) {
+            $query->where('students.amount_due', '>', 0);
         }
 
-        $stats = $this->paymentStats($rows);
+        $eligibleQuery = clone $query;
+        $stats = DB::query()
+            ->fromSub($eligibleQuery->toBase(), 'filtered_students')
+            ->selectRaw('COUNT(*) AS total')
+            ->selectRaw("SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) AS paid")
+            ->selectRaw("SUM(CASE WHEN payment_status = 'unpaid' THEN 1 ELSE 0 END) AS unpaid")
+            ->selectRaw("SUM(CASE WHEN payment_status = 'partial' THEN 1 ELSE 0 END) AS partial")
+            ->selectRaw('COALESCE(ROUND(SUM(balance), 2), 0) AS total_balance')
+            ->first();
 
         if (!empty($validated['payment_status'])) {
-            $rows = $rows->filter(fn (Student $student) =>
-                ($student->payment_summary['status'] ?? null) === $validated['payment_status']);
+            $query->where('students.payment_status', $validated['payment_status']);
         }
 
         if (!empty($validated['paid_state'])) {
-            $rows = $rows->filter(function (Student $student) use ($validated) {
-                $summary = $student->payment_summary;
-                return match ($validated['paid_state']) {
-                    'has_balance' => $summary['balance'] > 0,
-                    'paid' => $summary['balance'] <= 0 && $summary['amount_due'] > 0,
-                    'nothing_paid' => $summary['amount_paid'] <= 0,
-                };
-            });
+            match ($validated['paid_state']) {
+                'has_balance' => $query->where('students.balance', '>', 0),
+                'paid' => $query->where('students.balance', '<=', 0)->where('students.amount_due', '>', 0),
+                'nothing_paid' => $query->where('students.amount_paid', '<=', 0),
+            };
         }
 
         if (array_key_exists('balance_min', $validated)) {
-            $rows = $rows->filter(fn (Student $student) =>
-                $student->payment_summary['balance'] >= (float) $validated['balance_min']);
+            $query->where('students.balance', '>=', (float) $validated['balance_min']);
         }
 
         if (array_key_exists('balance_max', $validated)) {
-            $rows = $rows->filter(fn (Student $student) =>
-                $student->payment_summary['balance'] <= (float) $validated['balance_max']);
+            $query->where('students.balance', '<=', (float) $validated['balance_max']);
         }
 
+        $direction = $validated['direction'] ?? 'asc';
         $sort = $validated['sort'] ?? 'last_name';
-        $direction = ($validated['direction'] ?? 'asc') === 'desc' ? -1 : 1;
-        $rows = $rows->sort(function (Student $left, Student $right) use ($sort, $direction) {
-            $leftValue = match ($sort) {
-                'first_name' => $left->first_name,
-                'school_class' => $left->schoolClass?->name,
-                'academic_year' => $left->academic_year,
-                'amount_paid' => $left->payment_summary['amount_paid'],
-                'balance' => $left->payment_summary['balance'],
-                'payment_status' => $left->payment_summary['status'] ?? '',
-                default => $left->last_name,
-            };
-            $rightValue = match ($sort) {
-                'first_name' => $right->first_name,
-                'school_class' => $right->schoolClass?->name,
-                'academic_year' => $right->academic_year,
-                'amount_paid' => $right->payment_summary['amount_paid'],
-                'balance' => $right->payment_summary['balance'],
-                'payment_status' => $right->payment_summary['status'] ?? '',
-                default => $right->last_name,
-            };
-            return $direction * strnatcasecmp((string) $leftValue, (string) $rightValue);
-        })->values();
+        $sortColumn = match ($sort) {
+            'first_name' => 'students.first_name',
+            'school_class' => 'school_classes.name',
+            'academic_year' => 'students.academic_year',
+            'amount_paid' => 'students.amount_paid',
+            'balance' => 'students.balance',
+            'payment_status' => 'students.payment_status',
+            default => 'students.last_name',
+        };
 
-        $perPage = (int) ($validated['per_page'] ?? 8);
-        $page = (int) ($validated['page'] ?? 1);
-        $paginator = new LengthAwarePaginator(
-            $rows->forPage($page, $perPage)->values(),
-            $rows->count(),
-            $perPage,
-            $page,
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
+        if ($sort === 'school_class') {
+            $query->leftJoin('school_classes', 'school_classes.id', '=', 'students.school_class_id');
+        }
+
+        if ($sort === 'school_class') {
+            $query->orderByRaw("COALESCE(school_classes.name, '') {$direction}");
+        } else {
+            $query->orderBy($sortColumn, $direction);
+        }
+        if ($sort !== 'last_name') {
+            $query->orderBy('students.last_name')->orderBy('students.first_name');
+        } elseif ($direction === 'asc') {
+            $query->orderBy('students.first_name');
+        }
+
+        $perPage = min((int) ($validated['per_page'] ?? 8), 100);
+        $paginator = $query->paginate($perPage)->withQueryString();
+
+        $internalAttributes = [
+            'monthly_due_raw',
+            'monthly_paid_raw',
+            'overdue_count',
+            'registration_fee',
+            'registration_month_matches',
+            'monthly_due',
+            'monthly_paid',
+            'registration_due',
+            'registration_paid',
+            'fee_type_due',
+        ];
+
+        $paginator->getCollection()->transform(function (Student $student) use ($internalAttributes) {
+            $amountDue = (float) $student->amount_due;
+            $amountPaid = (float) $student->amount_paid;
+            $student->setAttribute('payment_summary', [
+                'status' => $student->payment_status,
+                'amount_due' => round($amountDue, 2),
+                'amount_paid' => round($amountPaid, 2),
+                'balance' => round((float) $student->balance, 2),
+                'fee_type_due' => round((float) $student->fee_type_due, 2),
+                'has_payment_data' => $amountDue > 0,
+                'supported_statuses' => ['paid', 'unpaid', 'partial', 'overdue'],
+            ]);
+
+            foreach (array_merge($internalAttributes, ['amount_due', 'amount_paid', 'balance', 'payment_status']) as $attribute) {
+                unset($student->{$attribute});
+            }
+
+            return $student;
+        });
 
         return response()->json([
             'data' => $paginator->items(),
-            'meta' => array_merge($paginator->toArray(), ['stats' => $stats]),
+            'meta' => array_merge($paginator->toArray(), [
+                'stats' => [
+                    'total' => (int) $stats->total,
+                    'paid' => (int) $stats->paid,
+                    'unpaid' => (int) $stats->unpaid,
+                    'partial' => (int) $stats->partial,
+                    'total_balance' => round((float) $stats->total_balance, 2),
+                ],
+            ]),
         ]);
-    }
-
-    private function paymentSummary(Student $student, array $filters, ?Setting $settings, string $feeType): array
-    {
-        $inscriptions = $student->inscriptions;
-        if (!empty($filters['academic_year_id'])) {
-            $inscriptions = $inscriptions->where('academic_year_id', $filters['academic_year_id']);
-        }
-
-        $ecolages = $inscriptions->flatMap->ecolages;
-        if (!empty($filters['month'])) {
-            $ecolages = $ecolages->where('month', (int) $filters['month']);
-        }
-
-        $monthlyDue = $feeType === 'registration' ? 0.0 : (float) $ecolages->sum('amount_due');
-        $monthlyPaid = $feeType === 'registration'
-            ? 0.0
-            : (float) $ecolages->flatMap->payments->sum('amount_paid');
-
-        $registrationDue = 0.0;
-        $registrationPaid = 0.0;
-        if ($feeType !== 'monthly') {
-            $registrationMonths = collect($student->registration_months ?? [])->map(fn ($month) => (int) $month);
-            $monthMatchesRegistration = empty($filters['month'])
-                || $registrationMonths->contains((int) $filters['month']);
-            if ($monthMatchesRegistration) {
-                $registrationDue = (float) ($settings?->registration_fee ?? 0);
-                $registrationPaid = match ($student->tuition_payment) {
-                    'full' => $registrationDue,
-                    'half' => $registrationDue / 2,
-                    default => 0.0,
-                };
-            }
-        }
-
-        $amountDue = round($monthlyDue + $registrationDue, 2);
-        $amountPaid = round($monthlyPaid + $registrationPaid, 2);
-        $balance = max(round($amountDue - $amountPaid, 2), 0);
-        $hasOverdue = $feeType === 'registration'
-            ? false
-            : $ecolages->contains(fn ($ecolage) => $ecolage->status === 'overdue');
-        $status = $amountDue <= 0 ? null : ($balance <= 0 ? 'paid' : ($amountPaid <= 0 ? ($hasOverdue ? 'overdue' : 'unpaid') : ($hasOverdue ? 'overdue' : 'partial')));
-
-        return [
-            'status' => $status,
-            'amount_due' => $amountDue,
-            'amount_paid' => $amountPaid,
-            'balance' => $balance,
-            'fee_type_due' => $feeType === 'registration' ? $registrationDue
-                : ($feeType === 'monthly' ? $monthlyDue : $amountDue),
-            'has_payment_data' => $amountDue > 0,
-            'supported_statuses' => ['paid', 'unpaid', 'partial', 'overdue'],
-        ];
-    }
-
-    private function paymentStats($rows): array
-    {
-        return [
-            'total' => $rows->count(),
-            'paid' => $rows->filter(fn (Student $student) => $student->payment_summary['status'] === 'paid')->count(),
-            'unpaid' => $rows->filter(fn (Student $student) => $student->payment_summary['status'] === 'unpaid')->count(),
-            'partial' => $rows->filter(fn (Student $student) => $student->payment_summary['status'] === 'partial')->count(),
-            'total_balance' => round($rows->sum(fn (Student $student) => $student->payment_summary['balance']), 2),
-        ];
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request){
-
-            // Si le front envoie des JSON stringifiés, on les décode avant validation
-            if ($request->has('parents') && is_string($request->parents)) {
-                $request->merge(['parents' => json_decode($request->parents, true)]);
-            }
-
-            if ($request->has('payment') && is_string($request->payment)) {
-                $request->merge(['payment' => json_decode($request->payment, true)]);
-            }
-
-            if ($request->has('paid_months') && is_string($request->paid_months)) {
-                $request->merge(['paid_months' => json_decode($request->paid_months, true)]);
-            }
-
-            if ($request->has('dossier') && is_string($request->dossier)) {
-                $request->merge(['dossier' => json_decode($request->dossier, true)]);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'first_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
-                'birth_date' => 'required|date|before:today',
-                'gender' => 'required|in:male,female',
-
-                'student_image'=>'image|nullable|max:1999',
-
-                'address' => 'nullable|string|max:255',
-                'city' => 'nullable|string|max:255',
-                'postal_code' => 'nullable|string|max:10',
-                'phone' => 'required|string|max:20',
-
-                'academic_year' => 'nullable|integer|min:2020|max:2030',
-                'grade_level' => 'nullable|in:PS,MS,GS,CP,CE1,CE2,CM1,CM2,6e,5e,4e,3e,2nde,1ère,Term',
-                'school_class_id' => 'required|integer|exists:school_classes,id',
-
-                'registration_status' => 'required|in:not_paid,half,full',
-                'paid_months' => 'array',
-                'paid_months.*' => 'integer|min:1|max:12',
-            ]);
+    public function store(StoreStudentRequest $request){
+            $validated = $request->validated();
 
         /////////////////////////
         // Vérifier si un étudiant avec le même prénom et nom existe déjà
-            $existingStudent = Student::where('first_name', $request->first_name)
-                                    ->where('last_name', $request->last_name)
+            $existingStudent = Student::where('first_name', $validated['first_name'])
+                                    ->where('last_name', $validated['last_name'])
                                     ->first();
 
             if ($existingStudent) {
@@ -305,14 +336,6 @@ class StudentController extends Controller implements HasMiddleware
             $path = $request->file('student_image')->storeAs('student_images', $fileNameToStore);
         } else {
             $path = 'profile_photo/noimage.png';
-        }
-
-        // Vérification des règles
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-                'data' => $request->all()
-            ], 422);
         }
 
         // Création de l'étudiant
@@ -349,12 +372,13 @@ class StudentController extends Controller implements HasMiddleware
                     'registration_months' => $request->paid_months ?? [],
                 ]);
                                     // Parents
-                    if ($request->has('parents') && is_array($request->parents)) {
-                        foreach ($request->parents as $parentData) {
+                    if (isset($validated['parents'])) {
+                        foreach ($validated['parents'] as $parentData) {
                             if (!empty($parentData['name']) && !empty($parentData['phone'])) {
                                 Guardian::create([
                                     'student_id' => $student->id,
                                     'name' => $parentData['name'] ?? null,
+                                    'first_name' => $parentData['first_name'] ?? null,
                                     'relationship' => $parentData['relationship'] ?? null,
                                     'phone' => $parentData['phone'] ?? null,
                                     'email' => $parentData['email'] ?? null,
@@ -383,53 +407,8 @@ class StudentController extends Controller implements HasMiddleware
     /**
      * Update the specified resource in storage.
      */
-public function update(Request $request, Student $student){
-    Gate::authorize('modify', $student);
-
-    // 1. Décodage JSON si nécessaire
-    if ($request->has('parents') && is_string($request->parents)) {
-        $request->merge(['parents' => json_decode($request->parents, true)]);
-    }
-    if ($request->has('payment') && is_string($request->payment)) {
-        $request->merge(['payment' => json_decode($request->payment, true)]);
-    }
-    if ($request->has('dossier') && is_string($request->dossier)) {
-        $request->merge(['dossier' => json_decode($request->dossier, true)]);
-    }
-
-    // 2. Validation
-    $validator = Validator::make($request->all(), [
-        'first_name' => 'sometimes|string|max:255',
-        'last_name' => 'sometimes|string|max:255',
-        'birth_date' => 'sometimes|date|before:today',
-        'gender' => 'sometimes|in:male,female',
-        'address' => 'nullable|string|max:255',
-        'city' => 'nullable|string|max:255',
-        'postalCode' => 'nullable|string|max:10',
-        'phone' => 'sometimes|string|max:20',
-        'school_class_id' => 'sometimes|integer|exists:school_classes,id',
-        'academicYear' => 'nullable|integer|min:2020|max:2030',
-        'gradeLevel' => 'nullable|in:PS,MS,GS,CP,CE1,CE2,CM1,CM2,6e,5e,4e,3e,2nde,1ère,Term',
-        'payment' => 'sometimes|array',
-        'payment.tuitionPayment' => 'sometimes|required_with:payment|in:half,full,not_paid',
-        'payment.registrationMonths' => 'sometimes|array',
-        'payment.registrationMonths.*' => 'string',
-        'parents' => 'sometimes|array',
-        'parents.*.name' => 'sometimes|required_with:parents|string|max:255',
-        'parents.*.phone' => 'sometimes|required_with:parents|string|max:20',
-        'parents.*.relationship' => 'sometimes|required_with:parents|in:mother,father,guardian',
-        'dossier' => 'sometimes|array',
-        'dossier.birthCertificate' => 'sometimes|required_with:dossier|boolean',
-        'dossier.medicalCertificate' => 'sometimes|required_with:dossier|boolean',
-        'dossier.residenceCertificate' => 'sometimes|required_with:dossier|boolean',
-        'dossier.reportCard' => 'sometimes|required_with:dossier|boolean',
-        'dossier.idCard' => 'sometimes|required_with:dossier|boolean',
-        'student_image' => 'nullable|image|max:1999',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 422);
-    }
+public function update(UpdateStudentRequest $request, Student $student){
+    $validated = $request->validated();
 
     // 3. Vérification conflit nom/prénom
     $conflict = Student::where('first_name', $request->input('first_name'))
@@ -452,15 +431,10 @@ public function update(Request $request, Student $student){
 
     // 5. Gestion de l’image
     if ($request->hasFile('student_image')) {
-        $fileNameWithExt = $request->file('student_image')->getClientOriginalName();
-        $fileName = pathinfo($fileNameWithExt, PATHINFO_FILENAME);
-        $extension = $request->file('student_image')->getClientOriginalExtension();
-        $fileNameToStore = $fileName . '_' . time() . '.' . $extension;
-
-        $path = $request->file('student_image')->storeAs('profile_photo', $fileNameToStore);
+        $path = $request->file('student_image')->store('student_images', 'public');
 
         if ($student->student_image && $student->student_image !== 'profile_photo/noimage.png') {
-            Storage::delete($student->student_image);
+            Storage::disk('public')->delete($student->student_image);
         }
 
         $student->student_image = $path;
@@ -514,23 +488,25 @@ public function update(Request $request, Student $student){
         }
     }
 
-    $student->update($updateData);
+    // 9. Mise à jour de l'élève et des parents
+    DB::transaction(function () use ($student, $updateData, $validated, &$modifiedSections) {
+        $student->update($updateData);
 
-    // 9. Mise à jour des parents
-    if ($request->has('parents') && is_array($request->parents)) {
-        Guardian::where('student_id', $student->id)->delete();
-        foreach ($request->parents as $p) {
-            Guardian::create([
-                'student_id' => $student->id,
-                'name' => $p['name'] ?? null,
-                'relationship' => $p['relationship'] ?? null,
-                'phone' => $p['phone'] ?? null,
-                'email' => $p['email'] ?? null,
-                'profession' => $p['profession'] ?? null,
-            ]);
+        if (isset($validated['parents'])) {
+            $student->guardians()->delete();
+            foreach ($validated['parents'] as $parent) {
+                $student->guardians()->create([
+                    'name' => $parent['name'],
+                    'first_name' => $parent['first_name'] ?? null,
+                    'relationship' => $parent['relationship'],
+                    'phone' => $parent['phone'],
+                    'email' => $parent['email'] ?? null,
+                    'profession' => $parent['profession'] ?? null,
+                ]);
+            }
+            $modifiedSections['parents'] = true;
         }
-        $modifiedSections['parents'] = true;
-    }
+    });
 
     // 10. Retour JSON
     return response()->json([

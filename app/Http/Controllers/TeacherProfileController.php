@@ -18,16 +18,16 @@ class TeacherProfileController extends Controller
     public function update(Request $request, TeacherAccessService $access)
     {
         $data = $request->validate([
-            'lastName' => 'sometimes|required|string|max:191',
-            'firstName' => 'sometimes|required|string|max:191',
+            'last_name' => 'sometimes|required|string|max:191',
+            'first_name' => 'sometimes|required|string|max:191',
             'phone' => 'sometimes|nullable|string|max:30',
             'password' => 'sometimes|nullable|string|min:8|confirmed',
         ]);
         $teacher = $access->profile($request->user());
 
         $userData = array_filter([
-            'firstName' => $data['firstName'] ?? null,
-            'lastName' => $data['lastName'] ?? null,
+            'first_name' => $data['first_name'] ?? null,
+            'last_name' => $data['last_name'] ?? null,
             'password' => isset($data['password']) ? Hash::make($data['password']) : null,
         ], fn ($value) => $value !== null);
 

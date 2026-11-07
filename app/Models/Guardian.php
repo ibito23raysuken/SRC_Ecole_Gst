@@ -12,6 +12,7 @@ class Guardian extends Model
     protected $fillable = [
         'student_id',
         'name',
+        'first_name',
         'relationship',
         'phone',
         'email',

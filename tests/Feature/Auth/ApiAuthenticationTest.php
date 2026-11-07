@@ -14,13 +14,13 @@ class ApiAuthenticationTest extends TestCase
     public function test_admin_can_login_with_first_name_and_password(): void
     {
         User::factory()->create([
-            'firstName' => 'AdminTest',
+            'first_name' => 'AdminTest',
             'role' => 'admin',
             'password' => Hash::make('secret123'),
         ]);
 
         $response = $this->postJson('/api/login', [
-            'firstName' => 'AdminTest',
+            'first_name' => 'AdminTest',
             'password' => 'secret123',
         ]);
 
@@ -31,13 +31,13 @@ class ApiAuthenticationTest extends TestCase
     public function test_teacher_can_login_without_an_email(): void
     {
         User::factory()->create([
-            'firstName' => 'TeacherTest',
+            'first_name' => 'TeacherTest',
             'role' => 'teacher',
             'password' => Hash::make('secret123'),
         ]);
 
         $this->postJson('/api/login', [
-            'firstName' => 'TeacherTest',
+            'first_name' => 'TeacherTest',
             'password' => 'secret123',
         ])->assertOk()->assertJsonPath('user.role', 'teacher');
     }
@@ -45,13 +45,13 @@ class ApiAuthenticationTest extends TestCase
     public function test_invalid_credentials_are_rejected(): void
     {
         User::factory()->create([
-            'firstName' => 'AdminTest',
+            'first_name' => 'AdminTest',
             'role' => 'admin',
             'password' => Hash::make('secret123'),
         ]);
 
         $this->postJson('/api/login', [
-            'firstName' => 'AdminTest',
+            'first_name' => 'AdminTest',
             'password' => 'wrong-password',
         ])->assertUnauthorized();
     }
@@ -63,6 +63,28 @@ class ApiAuthenticationTest extends TestCase
         $this->actingAs($teacher, 'sanctum')
             ->getJson('/api/school-classes')
             ->assertForbidden();
+    }
+
+    public function test_public_registration_uses_snake_case_names_and_assigns_user_role(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'first_name' => 'New',
+            'last_name' => 'User',
+            'password' => 'secret123',
+            'password_confirmation' => 'secret123',
+            'role' => 'admin',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('user.first_name', 'New')
+            ->assertJsonPath('user.last_name', 'User')
+            ->assertJsonPath('user.role', 'user');
+
+        $this->assertDatabaseHas('users', [
+            'first_name' => 'New',
+            'last_name' => 'User',
+            'role' => 'user',
+        ]);
     }
 
     public function test_logout_invalidates_the_current_token(): void

@@ -3,7 +3,7 @@ import { MessageSquare, Paperclip, Send } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { downloadTeacherAttachmentApi, getTeacherConversationApi, getTeacherMessageRecipientsApi, getTeacherMessagesApi, replyTeacherMessageApi, sendTeacherMessageApi } from "../../api/apiTeacherSpace";
 
-const personName = (person) => `${person?.firstName || ""} ${person?.lastName || ""}`.trim() || "Utilisateur";
+const personName = (person) => `${person?.first_name || ""} ${person?.last_name || ""}`.trim() || "Utilisateur";
 
 export default function TeacherMessages() {
   const [conversations, setConversations] = useState([]); const [selected, setSelected] = useState(null); const [body, setBody] = useState(""); const [recipientId, setRecipientId] = useState(""); const [recipients, setRecipients] = useState([]); const [attachment, setAttachment] = useState(null); const [loading, setLoading] = useState(true); const [sending, setSending] = useState(false);

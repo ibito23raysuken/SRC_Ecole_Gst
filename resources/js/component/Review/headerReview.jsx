@@ -2,9 +2,13 @@ import EditableFullName from "./Edit/EditableFullName";
 import YearSelectorEditable from "./Edit/YearSelectorEditable";
 import GradeLevelEditable from "./Edit/GradeLevelEditable";
 import EditableProfileImage from "./Edit/EditableProfileImage";
-import { toast } from "react-hot-toast";
 
-export default function Header({ student, setStudent, activeSection, setActiveSection }) {
+export default function Header({
+  student,
+  activeSection,
+  setActiveSection,
+  updateStudentField,
+}) {
   const sections = [
     { id: "personal", title: "Informations Personnelles" },
     { id: "parents", title: "Informations Parents" },
@@ -13,12 +17,6 @@ export default function Header({ student, setStudent, activeSection, setActiveSe
     { id: "performance", title: "Performance" },
     { id: "documents", title: "Documents" },
   ];
-
-  // ⚡ Merge les champs modifiés pour ne jamais écraser guardians
-  const updateStudentField = (res, message) => {
-    setStudent(prev => ({ ...prev, ...(res.student || res) }));
-    if (message) toast.success(message);
-  };
 
   return (
     <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">

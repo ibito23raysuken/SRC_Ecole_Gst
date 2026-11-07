@@ -27,30 +27,47 @@ export default function StudentProfile() {
    * 📡 FETCH DATA
    */
   useEffect(() => {
-    const fetchStudent = async () => {
-      if (!token || !id) return;
+    const controller = new AbortController();
 
+    const fetchStudent = async () => {
       setLoading(true);
+      setError(null);
+
+      if (!token) {
+        setStudent(null);
+        setError("Session absente. Veuillez vous reconnecter.");
+        setLoading(false);
+        return;
+      }
+
+      if (!id) {
+        setStudent(null);
+        setError("Élève introuvable.");
+        setLoading(false);
+        return;
+      }
 
       try {
-        //console.log("FETCH STUDENT:", { id, token });
-
-        const data = await getStudentApi(id);
+        const data = await getStudentApi(id, {
+          signal: controller.signal,
+        });
 
         setStudent({
           ...data,
           guardians: data.guardians || []
         });
-
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error(err);
         setError(err?.response?.data?.message || "Erreur serveur");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchStudent();
+
+    return () => controller.abort();
   }, [id, token]);
   /**
    * 🔄 UPDATE STATE SAFE
@@ -81,7 +98,6 @@ export default function StudentProfile() {
 
       <Header
         student={student}
-        setStudent={setStudent}
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         updateStudentField={updateStudentField}
@@ -159,9 +175,9 @@ function Error({ message }) {
   return (
     <div className="text-center mt-10 text-red-600">
       <p>{message || "Erreur"}</p>
-      <button onClick={() => window.location.reload()}>
-        Réessayer
-      </button>
+      {message !== "Session absente. Veuillez vous reconnecter." && (
+        <button onClick={() => window.location.reload()}>Réessayer</button>
+      )}
     </div>
   );
 }
