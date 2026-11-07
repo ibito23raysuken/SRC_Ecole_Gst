@@ -82,8 +82,8 @@ export default function TeacherList() {
   };
 
   return (
-    <div className="min-h-screen bg-red-50 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="space-y-6">
+      <div className="w-full">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
@@ -128,8 +128,8 @@ export default function TeacherList() {
           </div>
         ) : (
           <>
-            <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
-              <table className="min-w-full divide-y divide-red-100">
+            <div className="app-card mb-8 overflow-hidden">
+              <div className="overflow-x-auto"><table className="min-w-[720px] w-full divide-y divide-red-100">
                 <thead className="bg-red-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-red-800 uppercase">
@@ -199,7 +199,7 @@ export default function TeacherList() {
                     </tr>
                   )}
                 </tbody>
-              </table>
+              </table></div>
             </div>
 
             {/* Pagination */}

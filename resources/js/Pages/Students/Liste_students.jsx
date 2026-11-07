@@ -57,7 +57,7 @@ export default function StudentList() {
     catch (error) { toast.error(error.response?.data?.message || "Erreur lors de la suppression."); }
   };
 
-  return <div className="min-h-screen bg-gray-100 p-4 md:p-6"><Toaster position="top-right" /><div className="mx-auto max-w-7xl">
+  return <div className="space-y-6"><Toaster position="top-right" /><div className="mx-auto max-w-7xl">
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold text-gray-800 md:text-3xl">Liste des élèves</h1><p className="mt-1 text-sm text-gray-500">Recherche et suivi des paiements avec les données disponibles.</p></div><Link to="/students/create" className="rounded-lg bg-red-600 px-5 py-2.5 font-medium text-white shadow-sm hover:bg-red-700">+ Ajouter un élève</Link></div>
     <StudentStats stats={stats} onStatus={setStatus} />
     <StudentFilters filters={filters} classes={classes} academicYears={academicYears} onChange={updateFilter} onApply={() => setPage(1)} onReset={resetFilters} onRemove={removeFilter} />

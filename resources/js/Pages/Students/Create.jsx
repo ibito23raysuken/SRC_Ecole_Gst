@@ -345,7 +345,7 @@ export default function StudentCreate() {
   };
 
   return (
-    <div className="relative flex">
+    <div className="relative w-full">
       {/* Fenêtre si aucune classe n'est disponible */}
       {noClassModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

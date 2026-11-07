@@ -1,154 +1,29 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { BookOpen, CalendarDays, ChevronDown, ChevronRight, GraduationCap, LogOut, Menu, Settings, Users, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  PiStudentFill,
-  PiChalkboardTeacherFill,
-  PiBooksFill,
-  PiGearFill,
-  PiCaretDown,
-  PiCaretRight,
-  PiBookOpenFill,
-  PiCalendarFill,
-} from "react-icons/pi";
 
-export default function Sidebar() {
-  const [open, setOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState(null);
-  const location = useLocation();
+const menuItems = [
+  { id: "students", title: "Élèves", icon: Users, subMenus: [{ title: "Nouvel élève", path: "/students/create" }, { title: "Liste des élèves", path: "/students" }, { title: "Statistiques", path: "/students/SchoolDashboard" }] },
+  { id: "teachers", title: "Enseignants", icon: GraduationCap, subMenus: [{ title: "Ajouter enseignant", path: "/teachers/create" }, { title: "Liste des enseignants", path: "/teachers" }] },
+  { id: "classes", title: "Classes", icon: BookOpen, subMenus: [{ title: "Créer une classe", path: "/SchoolClass/create" }, { title: "Liste des classes", path: "/SchoolClass/list" }] },
+  { id: "subjects", title: "Matières", icon: BookOpen, subMenus: [{ title: "Ajouter matière", path: "/subjects/create" }, { title: "Liste des matières", path: "/subjects/Liste_Subject" }] },
+  { id: "tools", title: "Outils", icon: CalendarDays, subMenus: [{ title: "Emploi du temps", path: "/schedule" }, { title: "Insertion note", path: "/Note" }, { title: "Messages enseignants", path: "/admin/messages" }] },
+  { id: "settings", title: "Paramètres", icon: Settings, path: "/parametre" },
+];
 
-  // Définir menuItems à l'intérieur du composant pour éviter undefined
-  const menuItems = [
-    {
-      id: "students",
-      title: "Étudiants",
-      icon: <PiStudentFill className="text-2xl" />,
-      subMenus: [
-        { title: "Nouveau étudiant", path: "/students/create" },
-        { title: "Liste étudiants", path: "/students" },
-        { title: "Statistiques", path: "/students/SchoolDashboard" },
-      ],
-    },
-    {
-      id: "teachers",
-      title: "Enseignants",
-      icon: <PiChalkboardTeacherFill className="text-2xl" />,
-      subMenus: [
-        { title: "Ajouter enseignant", path: "/teachers/create" },
-        { title: "Liste enseignants", path: "/teachers" },
-      ],
-    },
-    {
-      id: "classes",
-      title: "Classes",
-      icon: <PiBooksFill className="text-2xl" />,
-      subMenus: [
-        { title: "Créer une classe", path: "/SchoolClass/create" },
-        { title: "Liste des classes", path: "/SchoolClass/list" },
-      ],
-    },
-    {
-      id: "subjects",
-      title: "Matières",
-      icon: <PiBookOpenFill className="text-2xl" />,
-      subMenus: [
-        { title: "Ajouter matière", path: "/subjects/create" },
-        { title: "Liste matières", path: "/subjects/Liste_Subject" },
-      ],
-    },
-    {
-      id: "schedule",
-      title: "Outils",
-      icon: <PiCalendarFill className="text-2xl" />,
-      subMenus: [
-        { title: "Configurer emploi du temps", path: "/schedule" },
-        { title: "Insertion note", path: "/Note" },
-        { title: "Messages enseignants", path: "/admin/messages" },
-      ],
-    },
-    {
-      id: "settings",
-      title: "Paramètres",
-      icon: <PiGearFill className="text-2xl" />,
-      path: "/parametre",
-    },
-  ];
+function isActive(item, pathname) { return item.path ? pathname === item.path || pathname.startsWith(`${item.path}/`) : item.subMenus?.some((sub) => pathname === sub.path || pathname.startsWith(`${sub.path}/`)); }
 
-  const toggleMenu = (menuId) => {
-    setActiveMenu(activeMenu === menuId ? null : menuId);
-  };
-
-  return (
-    <div
-      className={`fixed top-20 left-4 z-40 transition-all duration-300 ease-in-out mt-4
-        ${open ? "w-60" : "w-16"} max-h-[90vh] overflow-y-auto
-        bg-gradient-to-b from-red-700 to-red-800 shadow-xl rounded-2xl flex flex-col justify-between hover:w-60`}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      {/* MENU */}
-      <div className="p-4 space-y-1">
-        {menuItems.map((item) => {
-          const isActive =
-            location.pathname === item.path ||
-            item.subMenus?.some((sub) => location.pathname.startsWith(sub.path));
-
-          return (
-            <div key={item.id} className="mb-1">
-              {item.subMenus ? (
-                <>
-                  <button
-                    onClick={() => toggleMenu(item.id)}
-                    className={`w-full flex items-center gap-4 text-white rounded-lg px-3 py-3 transition
-                      ${open ? "justify-between" : "justify-center"}
-                      ${isActive ? "bg-red-600" : "hover:bg-red-600"}`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <span>{item.icon}</span>
-                      {open && <span className="font-medium">{item.title}</span>}
-                    </div>
-                    {open && (
-                      <span>{activeMenu === item.id ? <PiCaretDown /> : <PiCaretRight />}</span>
-                    )}
-                  </button>
-
-                  {open && activeMenu === item.id && (
-                    <div className="mt-1 ml-8 space-y-1 border-l-2 border-red-500 pl-2">
-                      {item.subMenus.map((subMenu, index) => {
-                        const isSubActive = location.pathname === subMenu.path;
-                        return (
-                          <Link
-                            key={index}
-                            to={subMenu.path}
-                            className={`block py-2 px-3 text-white rounded-lg transition text-sm
-                              ${isSubActive ? "bg-red-600" : "hover:bg-red-600"}`}
-                          >
-                            {subMenu.title}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Link
-                  to={item.path}
-                  className={`w-full flex items-center gap-4 text-white rounded-lg px-3 py-3 transition
-                    ${open ? "justify-start" : "justify-center"}
-                    ${isActive ? "bg-red-600" : "hover:bg-red-600"}`}
-                >
-                  <span>{item.icon}</span>
-                  {open && <span className="font-medium">{item.title}</span>}
-                </Link>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* FOOTER */}
-      <div className="p-4 text-center text-xs text-white opacity-70">
-        {open && "© 2026 ERP Scolaire"}
-      </div>
-    </div>
-  );
+export default function Sidebar({ onLogout }) {
+  const location = useLocation(); const [open, setOpen] = useState(false); const [activeMenu, setActiveMenu] = useState(null);
+  useEffect(() => { const current = menuItems.find((item) => isActive(item, location.pathname)); if (current?.subMenus) setActiveMenu(current.id); setOpen(false); }, [location.pathname]);
+  const closeMobile = () => { if (window.innerWidth < 768) setOpen(false); };
+  return <>
+    <button type="button" onClick={() => setOpen(true)} className="fixed left-4 top-4 z-50 rounded-lg bg-red-700 p-2 text-white shadow-md md:hidden" aria-label="Ouvrir le menu"><Menu size={20} /></button>
+    {open && <button type="button" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-slate-950/40 md:hidden" aria-label="Fermer le menu" />}
+    <aside className={`fixed inset-y-0 left-0 z-50 flex w-[var(--app-sidebar-width)] flex-col bg-gradient-to-b from-red-800 to-red-950 text-white shadow-xl transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`} aria-label="Navigation administrateur">
+      <div className="flex h-[var(--app-header-height)] items-center justify-between border-b border-red-700/70 px-5"><div><p className="font-bold">École Les Savants</p><p className="text-xs text-red-200">Administration</p></div><button type="button" onClick={() => setOpen(false)} className="rounded-md p-1 hover:bg-red-700 md:hidden" aria-label="Fermer le menu"><X size={20} /></button></div>
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">{menuItems.map((item) => { const Icon = item.icon; const active = isActive(item, location.pathname); return <div key={item.id}>{item.subMenus ? <><button type="button" onClick={() => setActiveMenu(activeMenu === item.id ? null : item.id)} className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition ${active ? "bg-red-700" : "hover:bg-red-700"}`}><span className="flex items-center gap-3"><Icon size={20} />{item.title}</span>{activeMenu === item.id ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>{activeMenu === item.id && <div className="ml-5 mt-1 space-y-1 border-l border-red-500 pl-3">{item.subMenus.map((sub) => <Link key={sub.path} to={sub.path} onClick={closeMobile} className={`block rounded-md px-3 py-2 text-sm transition ${location.pathname === sub.path ? "bg-red-700 text-white" : "text-red-100 hover:bg-red-700"}`}>{sub.title}</Link>)}</div>}</> : <Link to={item.path} onClick={closeMobile} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${active ? "bg-red-700" : "hover:bg-red-700"}`}><Icon size={20} />{item.title}</Link>}</div>; })}</nav>
+      <div className="border-t border-red-700/70 p-3"><button type="button" onClick={onLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition hover:bg-red-700"><LogOut size={20} />Déconnexion</button><p className="px-2 pt-3 text-xs text-red-200">© {new Date().getFullYear()} ERP scolaire</p></div>
+    </aside>
+  </>;
 }

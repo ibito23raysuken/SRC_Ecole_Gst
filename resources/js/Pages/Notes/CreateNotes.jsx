@@ -1035,13 +1035,13 @@ export default function NotesPage() {
   // ==========================================================
 
   return (
-    <div className="flex relative min-h-screen bg-gray-100 font-sans">
+    <div className="flex min-h-[calc(100vh-8rem)] w-full bg-gray-100 font-sans">
 
       {/* =====================================================
           PANNEAU GAUCHE
       ====================================================== */}
 
-      <aside className="w-80 bg-white border-r border-gray-200 flex flex-col overflow-y-auto">
+      <aside className="w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-y-auto">
 
         {/* HEADER */}
 
@@ -1416,7 +1416,7 @@ export default function NotesPage() {
           PANNEAU DROIT
       ====================================================== */}
 
-      <main className="flex-1 p-6 overflow-y-auto">
+      <main className="min-w-0 flex-1 overflow-y-auto p-6">
 
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">
           Aperçu — Bulletin de notes

@@ -127,7 +127,7 @@ export default function CreateSubject() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="mx-auto w-full max-w-3xl">
 
       <div className="bg-white p-8 rounded-2xl shadow-lg border">
 

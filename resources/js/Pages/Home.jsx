@@ -3,8 +3,8 @@ import { Brain, Heart, Sprout } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="bg-red-50 min-h-screen">
-      <main className="ml-20 md:ml-64 p-6 transition-all duration-300">
+    <div className="space-y-8">
+      <main className="w-full">
 
         {/* HERO */}
         <header className="relative h-[80vh] flex items-center justify-center text-white">

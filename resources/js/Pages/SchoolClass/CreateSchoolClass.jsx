@@ -41,13 +41,18 @@ export default function CreateSchoolClass() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const data = await getAcademicYearsApi(token);
-        if (!data || !data.id) {
+        const academicYears = await getAcademicYearsApi(token);
+        const activeAcademicYear = Array.isArray(academicYears)
+          ? academicYears.find(year => year.is_active)
+          : academicYears;
+
+        if (!activeAcademicYear?.id) {
           setNoParamModal(true);
           return;
         }
-        setAcademicYear(data);
-        setSchoolClass(prev => ({ ...prev, academic_year_id: data.id }));
+
+        setAcademicYear(activeAcademicYear);
+        setSchoolClass(prev => ({ ...prev, academic_year_id: activeAcademicYear.id }));
         const allClasses = await getAllSchoolClassesApi(token);
         setClasses(allClasses || []);
       } catch (error) {
@@ -94,7 +99,7 @@ export default function CreateSchoolClass() {
     errors[field] && <p className="text-red-600 text-sm mt-1">{errors[field][0]}</p>;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto relative">
+    <div className="relative mx-auto w-full max-w-3xl">
 
       {/* MODAL SI PAS D’ANNÉE */}
       {noParamModal && (
@@ -135,7 +140,7 @@ export default function CreateSchoolClass() {
               <Calendar size={18} className="text-red-600" />
               <span className="text-sm text-gray-600">Année :</span>
               <span className="font-bold text-red-700">
-                {academicYear.academic_year}
+                {academicYear.name}
               </span>
             </div>
           )}

@@ -1,0 +1,1 @@
+export default function LoadingState({ label = "Chargement…" }) { return <div className="flex min-h-32 items-center justify-center text-sm text-slate-500"><span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-red-200 border-t-red-700" />{label}</div>; }

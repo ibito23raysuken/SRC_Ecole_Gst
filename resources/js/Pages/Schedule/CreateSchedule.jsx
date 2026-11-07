@@ -139,8 +139,8 @@ export default function ScheduleFullDay() {
   };
 
   return (
-    <div className="min-h-screen bg-red-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="space-y-6">
+      <div className="w-full">
 
         {/* Sélection classe */}
         <div className="mb-6 flex items-center gap-4">

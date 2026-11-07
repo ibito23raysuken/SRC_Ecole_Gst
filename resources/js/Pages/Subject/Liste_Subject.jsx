@@ -64,8 +64,8 @@ export default function SubjectsList() {
   };
 
   return (
-    <div className="min-h-screen bg-red-50 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="space-y-6">
+      <div className="w-full">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">

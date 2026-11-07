@@ -539,9 +539,9 @@ export default function CreateTeacher() {
     // ============================================================
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-red-50 p-6">
+        <div className="space-y-6">
 
-            <div className="max-w-6xl mx-auto">
+            <div className="w-full">
 
                 {/* =================================================
                     HEADER

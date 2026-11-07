@@ -78,8 +78,8 @@ export default function TeacherDetail() {
     );
 
   return (
-    <div className="min-h-screen bg-red-50 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+    <div className="space-y-6">
+      <div className="app-card mx-auto max-w-5xl p-6 md:p-8">
 
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-6">
           {/* Photo */}

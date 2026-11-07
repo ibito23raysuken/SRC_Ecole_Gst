@@ -1,0 +1,1 @@
+export default function EmptyState({ title = "Aucun résultat", description = "Aucune donnée ne correspond à votre recherche." }) { return <div className="app-card flex min-h-32 flex-col items-center justify-center p-6 text-center"><p className="font-medium text-slate-700">{title}</p><p className="mt-1 text-sm text-slate-500">{description}</p></div>; }

@@ -58,7 +58,7 @@ export default function SchoolDashboard() {
   if (error) return <p className="text-center mt-10 text-red-600">Erreur: {error}</p>;
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8">
+    <div className="space-y-8">
       <h1 className="text-3xl font-bold text-red-700 mb-6">Tableau de bord de l'école</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -137,7 +137,7 @@ export default function SchoolDashboard() {
 // Card générique
 function Card({ title, children }) {
   return (
-    <div className="bg-white rounded-lg shadow p-4 border border-red-200">
+    <div className="app-card p-5">
       <h3 className="font-bold text-red-700 mb-4">{title}</h3>
       {children}
     </div>
@@ -147,7 +147,7 @@ function Card({ title, children }) {
 // Carte statistique rapide
 function StatCard({ label, value }) {
   return (
-    <div className="bg-red-50 p-4 rounded-lg shadow border border-red-200 flex flex-col items-center">
+    <div className="app-card flex flex-col items-center bg-red-50 p-5">
       <p className="text-sm text-red-700">{label}</p>
       <p className="text-2xl font-bold text-red-700">{value}</p>
     </div>
